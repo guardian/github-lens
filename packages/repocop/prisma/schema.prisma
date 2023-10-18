@@ -15851,3 +15851,12 @@ view view_repo_ownership {
 
   @@unique([github_team_id, full_name])
 }
+
+model best_practice_rule_definitions {
+  id                 String  @unique
+  name               String
+  owner              String
+  description        String
+  how_to_check       String
+  how_to_exempt      String
+}
