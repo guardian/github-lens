@@ -307,6 +307,7 @@ export const skipTablesAws = [
 	// Don't collect them to reduce execution time.
 	'aws_stepfunctions_map_runs',
 	'aws_stepfunctions_map_run_executions',
+	'aws_stepfunctions_executions',
 ];
 
 export const skipTablesGithub = [
