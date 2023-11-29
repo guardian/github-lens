@@ -5330,14 +5330,10 @@ spec:
   path: cloudquery/github
   version: v7.4.2
   tables:
-    - github_organizations
-    - github_organization_members
     - github_teams
-    - github_team_members
     - github_team_repositories
   skip_tables:
-    - github_organization_dependabot_alerts
-    - github_organization_dependabot_secrets
+    - github_team_members
   destinations:
     - postgresql
   concurrency: 1000
