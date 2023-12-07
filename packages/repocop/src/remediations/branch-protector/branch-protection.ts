@@ -10,7 +10,7 @@ import type { Octokit } from 'octokit';
 import type { Config } from '../../config';
 import { getRepoOwnership, getTeams } from '../../query';
 import type { Repository } from '../../types';
-import { findContactableOwners } from '../shared-utilities';
+import { findContactableOwners, removeRepoOwner } from '../shared-utilities';
 import { notify } from './aws-requests';
 import {
 	getDefaultBranchName,
@@ -81,32 +81,29 @@ async function protectBranch(
 	config: Config,
 	event: UpdateMessageEvent,
 ) {
-	const [owner, repo] = event.fullName.split('/');
+	const owner = 'guardian';
+	const name = removeRepoOwner(event.fullName);
 
-	if (!owner || !repo) {
-		throw new Error(`Invalid repo name: ${event.fullName}`);
-	}
-
-	let defaultBranchName = undefined;
+	let defaultBranch = undefined;
 	try {
-		defaultBranchName = await getDefaultBranchName(owner, repo, octokit);
+		defaultBranch = await getDefaultBranchName(owner, name, octokit);
 	} catch (error) {
-		throw new Error(`Could not find default branch for repo: ${repo}`);
+		throw new Error(`Could not find default branch for repo: ${name}`);
 	}
 
 	const branchIsProtected = await isBranchProtected(
 		octokit,
 		owner,
-		repo,
-		defaultBranchName,
+		name,
+		defaultBranch,
 	);
 
 	if (!branchIsProtected) {
 		await updateBranchProtection(
 			octokit,
 			owner,
-			repo,
-			defaultBranchName,
+			name,
+			defaultBranch,
 			config.stage,
 		);
 		for (const slug of event.teamNameSlugs) {
@@ -114,6 +111,6 @@ async function protectBranch(
 		}
 		console.log(`Notified teams ${event.teamNameSlugs.join(', ')}}`);
 	} else {
-		console.log(`No action required for ${repo}. Branch is already protected.`);
+		console.log(`No action required for ${name}. Branch is already protected.`);
 	}
 }
