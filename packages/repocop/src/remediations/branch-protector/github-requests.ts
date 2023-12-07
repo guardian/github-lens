@@ -105,6 +105,29 @@ export async function getDefaultBranchName(
 	return data.data.default_branch;
 }
 
+//TODO test this
+function evaluateProtection(protection: CurrentBranchProtection): boolean {
+	const reviwerCount =
+		protection.required_pull_request_reviews?.required_approving_review_count ??
+		0;
+
+	const forcePushesBlocked = protection.allow_force_pushes?.enabled ?? false;
+	const deletionsBlocked = protection.allow_deletions?.enabled ?? false;
+	const reviewRequired =
+		protection.required_pull_request_reviews?.require_code_owner_reviews ??
+		false;
+
+	const noAdminBypass = protection.enforce_admins?.enabled ?? false;
+
+	return (
+		reviewRequired &&
+		reviwerCount < 1 &&
+		forcePushesBlocked &&
+		deletionsBlocked &&
+		noAdminBypass
+	);
+}
+
 export async function isBranchProtected(
 	octokit: Octokit,
 	owner: string,
@@ -117,5 +140,10 @@ export async function isBranchProtected(
 		repo,
 		branch,
 	});
-	return branchData.data.protected;
+
+	if (!branchData.data.protected) {
+		return false;
+	} else {
+		return evaluateProtection(branchData.data.protection);
+	}
 }
