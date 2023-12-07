@@ -1,5 +1,5 @@
 import { constructNewBranchProtection } from './github-requests';
-import type { CurrentBranchProtection } from './model';
+import type { CurrentBranchProtection } from './types';
 
 const noBranchProtection: CurrentBranchProtection = {
 	required_status_checks: {

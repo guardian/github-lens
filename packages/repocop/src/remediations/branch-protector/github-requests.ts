@@ -2,7 +2,7 @@ import type { Octokit } from 'octokit';
 import type {
 	CurrentBranchProtection,
 	UpdateBranchProtectionParams,
-} from './model';
+} from './types';
 
 async function getCurrentBranchProtection(
 	octokit: Octokit,
