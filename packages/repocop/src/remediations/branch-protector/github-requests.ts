@@ -23,7 +23,7 @@ async function getCurrentBranchProtection(
 }
 
 //TODO test this
-function constructNewBranchProtection(
+export function constructNewBranchProtection(
 	protection: CurrentBranchProtection,
 	owner: string,
 	repo: string,
@@ -51,12 +51,12 @@ function constructNewBranchProtection(
 			teams,
 			apps,
 		},
-		enforce_admins: true,
+		enforce_admins: protection.enforce_admins?.enabled ?? true, //do we want to strictly require this? It might be a problem in an emergency
 		required_pull_request_reviews: {
 			require_code_owner_reviews: true,
 			required_approving_review_count,
 		},
-		allow_force_pushes: protection.allow_force_pushes?.enabled,
+		allow_force_pushes: false,
 		allow_deletions: false,
 	};
 	return newProtection;
