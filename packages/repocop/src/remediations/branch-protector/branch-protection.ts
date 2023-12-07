@@ -101,18 +101,19 @@ async function protectBranch(
 		defaultBranchName,
 	);
 
-	const stageIsProd = config.stage === 'PROD';
-
-	if (stageIsProd && !branchIsProtected) {
-		await updateBranchProtection(octokit, owner, repo, defaultBranchName);
+	if (!branchIsProtected) {
+		await updateBranchProtection(
+			octokit,
+			owner,
+			repo,
+			defaultBranchName,
+			config.stage,
+		);
 		for (const slug of event.teamNameSlugs) {
 			await notify(event.fullName, config, slug);
 		}
 		console.log(`Notified teams ${event.teamNameSlugs.join(', ')}}`);
 	} else {
-		const reason =
-			(branchIsProtected ? ' Branch is already protected.' : '') +
-			(!stageIsProd ? ' Not running on PROD.' : '');
-		console.log(`No action required for ${repo}. ${reason}`);
+		console.log(`No action required for ${repo}. Branch is already protected.`);
 	}
 }

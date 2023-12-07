@@ -67,6 +67,7 @@ export async function updateBranchProtection(
 	owner: string,
 	repo: string,
 	branch: string,
+	stage: string,
 ) {
 	const protection = await getCurrentBranchProtection(
 		octokit,
@@ -83,11 +84,15 @@ export async function updateBranchProtection(
 		repo,
 		branch,
 	);
-	try {
-		await octokit.rest.repos.updateBranchProtection(newProtection);
-	} catch (error) {
-		console.error(`Error: branch protection failed for ${repo}`);
-		console.error(error);
+	if (stage === 'PROD') {
+		try {
+			await octokit.rest.repos.updateBranchProtection(newProtection);
+		} catch (error) {
+			console.error(`Error: branch protection failed for ${repo}`);
+			console.error(error);
+		}
+	} else {
+		console.log(`Would have applied branch protection to ${repo}`);
 	}
 }
 
@@ -106,6 +111,7 @@ export async function isBranchProtected(
 	repo: string,
 	branch: string,
 ): Promise<boolean> {
+	//TODO make this more complicated
 	const branchData = await octokit.rest.repos.getBranch({
 		owner,
 		repo,
