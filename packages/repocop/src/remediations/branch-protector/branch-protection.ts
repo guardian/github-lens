@@ -14,9 +14,38 @@ import { findContactableOwners, removeRepoOwner } from '../shared-utilities';
 import { notify } from './aws-requests';
 import {
 	getDefaultBranchName,
-	isBranchProtected,
 	updateBranchProtection,
 } from './github-requests';
+import type { CurrentBranchProtection } from './types';
+
+export function sufficientProtection(
+	protection: CurrentBranchProtection,
+): boolean {
+	const reviwerCount =
+		protection.required_pull_request_reviews?.required_approving_review_count ??
+		0;
+	console.log('Reviewer count: ', reviwerCount);
+
+	const forcePushesBlocked = protection.allow_force_pushes?.enabled == false;
+	console.log('Force pushes blocked: ', forcePushesBlocked);
+	const deletionsBlocked = protection.allow_deletions?.enabled == false;
+	console.log('Deletions blocked: ', deletionsBlocked);
+	const reviewRequired =
+		protection.required_pull_request_reviews?.require_code_owner_reviews ===
+		true;
+	console.log('Review required: ', reviewRequired);
+
+	const noAdminBypass = protection.enforce_admins?.enabled ?? false;
+	console.log('No admin bypass: ', noAdminBypass);
+
+	return (
+		reviewRequired &&
+		reviwerCount > 0 &&
+		forcePushesBlocked &&
+		deletionsBlocked &&
+		noAdminBypass
+	);
+}
 
 export function createBranchProtectionEvents(
 	evaluatedRepos: repocop_github_repository_rules[],
@@ -53,7 +82,6 @@ export async function protectBranches(
 	const repoOwners = await getRepoOwnership(prisma);
 	const teams = await getTeams(prisma);
 
-	//repos with a 'production' or 'documentation' topic
 	const productionOrDocs = unarchivedRepositories
 		.filter(
 			(repo) =>
@@ -82,35 +110,36 @@ async function protectBranch(
 	event: UpdateMessageEvent,
 ) {
 	const owner = 'guardian';
-	const name = removeRepoOwner(event.fullName);
+	const repo = removeRepoOwner(event.fullName);
 
 	let defaultBranch = undefined;
 	try {
-		defaultBranch = await getDefaultBranchName(owner, name, octokit);
+		defaultBranch = await getDefaultBranchName(owner, repo, octokit);
 	} catch (error) {
-		throw new Error(`Could not find default branch for repo: ${name}`);
+		throw new Error(`Could not find default branch for repo: ${repo}`);
 	}
 
-	const branchIsProtected = await isBranchProtected(
-		octokit,
+	const branch = await octokit.rest.repos.getBranch({
 		owner,
-		name,
-		defaultBranch,
-	);
+		repo,
+		branch: defaultBranch,
+	});
 
-	if (!branchIsProtected) {
+	const completelyUnprotected = !branch.data.protected;
+
+	if (completelyUnprotected || !sufficientProtection(branch.data.protection)) {
 		await updateBranchProtection(
 			octokit,
 			owner,
-			name,
+			repo,
 			defaultBranch,
 			config.stage,
 		);
-		for (const slug of event.teamNameSlugs) {
-			await notify(event.fullName, config, slug);
+		for (const team of event.teamNameSlugs) {
+			await notify(event.fullName, config, team);
 		}
 		console.log(`Notified teams ${event.teamNameSlugs.join(', ')}}`);
 	} else {
-		console.log(`No action required for ${name}. Branch is already protected.`);
+		console.log(`No action required for ${repo}. Branch is already protected.`);
 	}
 }

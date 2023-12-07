@@ -22,7 +22,6 @@ async function getCurrentBranchProtection(
 	return branchProtection.data;
 }
 
-//TODO test this
 export function constructNewBranchProtection(
 	protection: CurrentBranchProtection,
 	owner: string,
@@ -103,47 +102,4 @@ export async function getDefaultBranchName(
 ) {
 	const data = await octokit.rest.repos.get({ owner: owner, repo: repo });
 	return data.data.default_branch;
-}
-
-//TODO test this
-function evaluateProtection(protection: CurrentBranchProtection): boolean {
-	const reviwerCount =
-		protection.required_pull_request_reviews?.required_approving_review_count ??
-		0;
-
-	const forcePushesBlocked = protection.allow_force_pushes?.enabled ?? false;
-	const deletionsBlocked = protection.allow_deletions?.enabled ?? false;
-	const reviewRequired =
-		protection.required_pull_request_reviews?.require_code_owner_reviews ??
-		false;
-
-	const noAdminBypass = protection.enforce_admins?.enabled ?? false;
-
-	return (
-		reviewRequired &&
-		reviwerCount < 1 &&
-		forcePushesBlocked &&
-		deletionsBlocked &&
-		noAdminBypass
-	);
-}
-
-export async function isBranchProtected(
-	octokit: Octokit,
-	owner: string,
-	repo: string,
-	branch: string,
-): Promise<boolean> {
-	//TODO make this more complicated
-	const branchData = await octokit.rest.repos.getBranch({
-		owner,
-		repo,
-		branch,
-	});
-
-	if (!branchData.data.protected) {
-		return false;
-	} else {
-		return evaluateProtection(branchData.data.protection);
-	}
 }

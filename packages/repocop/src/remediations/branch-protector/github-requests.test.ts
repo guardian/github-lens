@@ -32,7 +32,7 @@ const noBranchProtection: CurrentBranchProtection = {
 	},
 };
 
-describe('If a branch was previously completely unprotected', () => {
+describe('If a branch was previously completely unprotected, it', () => {
 	const newProtection = constructNewBranchProtection(
 		noBranchProtection,
 		'owner',
@@ -70,7 +70,7 @@ describe('If a branch was previously completely unprotected', () => {
 	});
 });
 
-describe('If a branch was previously protected with some settings', () => {
+describe('If a branch was partially protected, it', () => {
 	it('should not overwrite settings that enforced a higher level of protection than us', () => {
 		const branchProtection: CurrentBranchProtection = {
 			...noBranchProtection,

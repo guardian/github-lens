@@ -3,7 +3,11 @@ import type {
 	repocop_github_repository_rules,
 	view_repo_ownership,
 } from '@prisma/client';
-import { createBranchProtectionEvents } from './branch-protection';
+import {
+	createBranchProtectionEvents,
+	sufficientProtection,
+} from './branch-protection';
+import type { CurrentBranchProtection } from './types';
 
 const nullOwner: view_repo_ownership = {
 	full_name: '',
@@ -107,5 +111,125 @@ describe('Team slugs should be findable for every team associated with a repo', 
 		);
 
 		expect(actual.length).toEqual(0);
+	});
+});
+
+const veryProtected: CurrentBranchProtection = {
+	required_status_checks: {
+		checks: [],
+		strict: true,
+		contexts: [],
+	},
+	required_pull_request_reviews: {
+		dismiss_stale_reviews: true,
+		require_code_owner_reviews: true,
+		required_approving_review_count: 1,
+	},
+	enforce_admins: {
+		url: '',
+		enabled: true,
+	},
+	restrictions: {
+		users: [],
+		users_url: '',
+		teams: [],
+		teams_url: '',
+		apps: [],
+		apps_url: '',
+		url: '',
+	},
+	allow_force_pushes: {
+		enabled: false,
+	},
+	allow_deletions: {
+		enabled: false,
+	},
+};
+
+describe('Sufficiently protected repositories', () => {
+	test('pass the protection gate', () => {
+		expect(sufficientProtection(veryProtected)).toBe(true);
+	});
+});
+
+describe('Branch protection is not sufficient if', () => {
+	//TODO add some more ambiguous cases
+	test('there are zero required approving reviews', () => {
+		const noApprovingReviews: CurrentBranchProtection = {
+			...veryProtected,
+			required_pull_request_reviews: {
+				dismiss_stale_reviews: true,
+				//I dont think this is a valid state in reality, but just in case
+				require_code_owner_reviews: true,
+				required_approving_review_count: 0,
+			},
+		};
+		expect(sufficientProtection(noApprovingReviews)).toBe(false);
+	});
+	test('code owner reviews are not required', () => {
+		const noApprovingReviews: CurrentBranchProtection = {
+			...veryProtected,
+			required_pull_request_reviews: {
+				dismiss_stale_reviews: true,
+				//I dont think this is a valid state in reality, but just in case
+				require_code_owner_reviews: false,
+				required_approving_review_count: 1,
+			},
+		};
+		expect(sufficientProtection(noApprovingReviews)).toBe(false);
+	});
+	test('there are no review expectations', () => {
+		const noApprovingReviews: CurrentBranchProtection = {
+			...veryProtected,
+			required_pull_request_reviews: {
+				dismiss_stale_reviews: true,
+				require_code_owner_reviews: false,
+				required_approving_review_count: 0,
+			},
+		};
+		expect(sufficientProtection(noApprovingReviews)).toBe(false);
+	});
+	test('users may force push', () => {
+		const canForcePush: CurrentBranchProtection = {
+			...veryProtected,
+			allow_force_pushes: {
+				enabled: true,
+			},
+		};
+		const ambiguousForcePushPolicy: CurrentBranchProtection = {
+			...veryProtected,
+			allow_force_pushes: undefined,
+		};
+		expect(sufficientProtection(canForcePush)).toBe(false);
+		expect(sufficientProtection(ambiguousForcePushPolicy)).toBe(false);
+	});
+	test('users may delete the branch', () => {
+		const deletionEnabled: CurrentBranchProtection = {
+			...veryProtected,
+			allow_deletions: {
+				enabled: true,
+			},
+		};
+		const ambiguousDeletionPolicy: CurrentBranchProtection = {
+			...veryProtected,
+			allow_deletions: undefined,
+		};
+		expect(sufficientProtection(deletionEnabled)).toBe(false);
+		expect(sufficientProtection(ambiguousDeletionPolicy)).toBe(false);
+	});
+	test('admins may bypass existing protections', () => {
+		const adminBypass: CurrentBranchProtection = {
+			...veryProtected,
+			enforce_admins: {
+				enabled: false,
+				url: '',
+			},
+		};
+		const ambiguousAdminBypass: CurrentBranchProtection = {
+			...veryProtected,
+			enforce_admins: undefined,
+		};
+		expect(sufficientProtection(adminBypass)).toBe(false);
+		expect(sufficientProtection(ambiguousAdminBypass)).toBe(false);
 	});
 });
