@@ -98,5 +98,7 @@ export async function getSnykProjects(
 export async function getSnykLatestIssues(
 	client: PrismaClient,
 ): Promise<snyk_reporting_latest_issues[]> {
-	return await client.snyk_reporting_latest_issues.findMany({});
+	return await client.snyk_reporting_latest_issues.findMany({
+		take: 10,
+	});
 }
