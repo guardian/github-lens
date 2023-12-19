@@ -11,6 +11,7 @@ import {
 	getRepositories,
 	getRepositoryBranches,
 	getRepositoryTeams,
+	getSnykLatestIssues,
 	getSnykProjects,
 	getStacks,
 	getTeams,
@@ -52,7 +53,6 @@ export async function main() {
 	const nonPlaygroundStacks: AwsCloudFormationStack[] = (
 		await getStacks(prisma)
 	).filter((s) => s.tags.Stack !== 'playground');
-	const snykProjects = await getSnykProjects(prisma);
 	const evaluatedRepos: repocop_github_repository_rules[] =
 		evaluateRepositories(unarchivedRepos, branches, repoTeams);
 
@@ -64,7 +64,8 @@ export async function main() {
 		unarchivedRepos,
 		archivedRepos,
 		nonPlaygroundStacks,
-		snykProjects,
+		await getSnykProjects(prisma),
+		await getSnykLatestIssues(prisma),
 	);
 
 	await writeEvaluationTable(evaluatedRepos, prisma);

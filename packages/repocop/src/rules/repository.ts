@@ -2,6 +2,7 @@ import type {
 	github_repository_branches,
 	repocop_github_repository_rules,
 	snyk_projects,
+	snyk_reporting_latest_issues,
 } from '@prisma/client';
 import type { Octokit } from 'octokit';
 import { type RepositoryTeam } from '../query';
@@ -290,9 +291,13 @@ export function testExperimentalRepocopFeatures(
 	archivedRepos: Repository[],
 	nonPlaygroundStacks: AwsCloudFormationStack[],
 	snykProjects: snyk_projects[],
+	snykIssues: snyk_reporting_latest_issues[],
 ) {
 	console.log('tags example');
 	console.log(snykProjects.find((project) => !!project.tags));
+
+	console.log('issues example');
+	console.log(snykIssues[0]);
 
 	const unmaintinedReposCount = evaluatedRepos.filter(
 		(repo) => repo.archiving === false,
