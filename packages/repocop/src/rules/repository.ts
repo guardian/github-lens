@@ -291,6 +291,9 @@ export function testExperimentalRepocopFeatures(
 	nonPlaygroundStacks: AwsCloudFormationStack[],
 	snykProjects: snyk_projects[],
 ) {
+	console.log('tags example');
+	console.log(snykProjects.find((project) => !!project.tags));
+
 	const unmaintinedReposCount = evaluatedRepos.filter(
 		(repo) => repo.archiving === false,
 	).length;
