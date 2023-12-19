@@ -7,7 +7,12 @@ import type {
 	view_repo_ownership,
 } from '@prisma/client';
 import type { GetFindResult } from '@prisma/client/runtime/library';
-import type { AwsCloudFormationStack, Repository, Team } from './types';
+import type {
+	AwsCloudFormationStack,
+	Repository,
+	SnykProject,
+	Team,
+} from './types';
 
 export async function getRepositories(
 	client: PrismaClient,
@@ -91,8 +96,10 @@ export async function getStacks(
 
 export async function getSnykProjects(
 	client: PrismaClient,
-): Promise<snyk_projects[]> {
-	return await client.snyk_projects.findMany({});
+): Promise<SnykProject[]> {
+	return (await client.snyk_projects.findMany({}))
+		.map((p) => JSON.stringify(p)) //yes i know this is hacky
+		.map((p) => JSON.parse(p) as SnykProject);
 }
 
 export async function getSnykLatestIssues(
