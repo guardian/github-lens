@@ -137,6 +137,34 @@ export function parseSnykTags(snyk_projects: snyk_projects) {
 	return snykTags;
 }
 
+function logUnsupported(
+	repo: string,
+	repoLanguages: string[],
+	supportedLanguages: string[],
+	platform: string,
+) {
+	console.log(
+		`${repo} contains the following languages not supported by ${platform}: `,
+		repoLanguages.filter((language) => !supportedLanguages.includes(language)),
+	);
+}
+
+//TODO test
+function allLanguagesSupported(
+	repo: string,
+	repoLanguages: string[],
+	supportedLanguages: string[],
+	platform: string,
+): boolean {
+	const containsOnlySupportedLanguages = repoLanguages.every((l) =>
+		supportedLanguages.includes(l),
+	);
+	if (!containsOnlySupportedLanguages) {
+		logUnsupported(repo, repoLanguages, supportedLanguages, platform);
+	}
+	return containsOnlySupportedLanguages;
+}
+
 /**
  * Evaluate the following rule for a Github repository:
  *   > Repositories should have their dependencies tracked via Snyk or Dependabot, depending on the languages present.
@@ -150,7 +178,7 @@ export function hasDependencyTracking(
 		return true;
 	}
 
-	const languages: string[] =
+	const langs: string[] =
 		repoLanguages.find(
 			(repoLanguage) => repoLanguage.full_name === repo.full_name,
 		)?.languages ?? [];
@@ -194,11 +222,9 @@ export function hasDependencyTracking(
 		'Visual Basic .NET',
 	];
 
-	const supportedDependabotLanguages = ignoredLanguages.concat(
-		commonSupportedLanguages,
-	);
+	const dependabotLanguages = ignoredLanguages.concat(commonSupportedLanguages);
 
-	const supportedSnykLanguages = ignoredLanguages
+	const snykLanguages = ignoredLanguages
 		.concat(commonSupportedLanguages)
 		.concat(snykOnlySupportedLanguages);
 
@@ -213,35 +239,19 @@ export function hasDependencyTracking(
 			tags.branch === repo.default_branch,
 	);
 
+	console.log(matchingSnykProject);
+
 	const repoIsOnSnyk = !!matchingSnykProject;
 
 	if (repoIsOnSnyk) {
-		const containsOnlySnykSupportedLanguages = languages.every((language) =>
-			supportedSnykLanguages.includes(language),
-		);
-		if (!containsOnlySnykSupportedLanguages) {
-			console.log(
-				`${repo.name} contains the following languages not supported by Snyk: `,
-				languages.filter(
-					(language) => !supportedSnykLanguages.includes(language),
-				),
-			);
-		}
-		return containsOnlySnykSupportedLanguages;
+		return allLanguagesSupported(repo.name, langs, snykLanguages, 'Snyk');
 	} else {
-		const containsOnlyDependabotSupportedLanguages = languages.every(
-			(language) => supportedDependabotLanguages.includes(language),
+		return allLanguagesSupported(
+			repo.name,
+			langs,
+			dependabotLanguages,
+			'Dependabot',
 		);
-		if (!containsOnlyDependabotSupportedLanguages) {
-			console.log(
-				`${repo.name} contains the following languages not supported by Dependabot: `,
-				languages.filter(
-					(language) => !supportedDependabotLanguages.includes(language),
-				),
-			);
-		}
-
-		return containsOnlyDependabotSupportedLanguages;
 	}
 }
 
