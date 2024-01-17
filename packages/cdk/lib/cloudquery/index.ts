@@ -437,6 +437,7 @@ export function addCloudqueryEcsCluster(
 					'snyk_organization_members',
 					'snyk_reporting_issues',
 					'snyk_reporting_latest_issues',
+					'snyk_projects',
 				],
 				skipTables: ['snyk_organization_provisions'],
 			}),

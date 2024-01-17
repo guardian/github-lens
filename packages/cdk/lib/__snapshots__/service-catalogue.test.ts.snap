@@ -14937,6 +14937,7 @@ spec:
     - snyk_organization_members
     - snyk_reporting_issues
     - snyk_reporting_latest_issues
+    - snyk_projects
   skip_tables:
     - snyk_organization_provisions
   destinations:
