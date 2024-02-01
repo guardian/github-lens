@@ -17,16 +17,13 @@ export async function main(event: SnykIntegratorEvent) {
 	const config: Config = getConfig();
 
 	const branch = generateBranchName(event.languages);
-	if (config.stage === 'PROD') {
-		const octokit = await stageAwareOctokit(config.stage);
 
-		const existingPullRequest = await getPullRequest(
-			octokit,
-			event.name,
-			branch,
-		);
+	const octokit = await stageAwareOctokit(config.stage);
 
-		if (!existingPullRequest) {
+	const existingPullRequest = await getPullRequest(octokit, event.name, branch);
+
+	if (!existingPullRequest) {
+		if (config.stage === 'PROD') {
 			const response = await createSnykPullRequest(
 				octokit,
 				event.name,
@@ -40,16 +37,19 @@ export async function main(event: SnykIntegratorEvent) {
 			await addPrToProject(config.stage, event);
 			console.log('Updated project board');
 		} else {
-			console.log(`Existing pull request found with branch ${branch}`);
+			console.log(
+				'No existing Snyk integration PR found. Testing snyk.yml generation',
+			);
+			console.log(createYaml(event.languages, branch));
+			console.log('Testing PR generation');
+			const [head, body] = generatePr(event.languages, branch);
+			console.log('Title:\n', head);
+			console.log('Body:\n', body);
 		}
 	} else {
-		console.log('Testing snyk.yml generation');
-		console.log(createYaml(event.languages, branch));
-		console.log('Testing PR generation');
-		const [head, body] = generatePr(event.languages, branch);
-		console.log('Title:\n', head);
-		console.log('Body:\n', body);
+		console.log(`Existing pull request found with branch ${branch}`);
 	}
+
 	console.log('Done');
 }
 
