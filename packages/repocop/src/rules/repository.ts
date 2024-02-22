@@ -437,7 +437,8 @@ function sendVulnerabilityDigests(
 					subject: digest.subject,
 					message: digest.message,
 					actions: [action],
-					target: { GithubTeamSlug: digest.teamSlug },
+					// target: { GithubTeamSlug: digest.teamSlug },
+					target: { Stack: 'testing-alerts ' },
 					channel: RequestedChannel.PreferHangouts,
 					sourceSystem: `${config.app} ${config.stage}`,
 					topicArn: config.anghammaradSnsTopic,
@@ -484,7 +485,9 @@ export async function testExperimentalRepocopFeatures(
 		.map((t) => createDigest(t, repoOwners, evaluationResults))
 		.filter((d): d is VulnerabilityDigest => d !== undefined);
 
-	if (isFirstOrThirdTuesdayOfMonth(new Date()) && config.stage === 'PROD') {
+	if (
+		isFirstOrThirdTuesdayOfMonth(new Date()) /* && config.stage === 'PROD' */
+	) {
 		await sendVulnerabilityDigests(someDigests, config);
 	} else {
 		console.log('Logging vulnerability digests');
