@@ -70,6 +70,8 @@ jobs:
                 - packages/dependency-graph-integrator/dist/dependency-graph-integrator.zip
             github-actions-usage:
               - packages/github-actions-usage/dist/github-actions-usage.zip
+            prisma:
+              - packages/common/prisma.zip
     env:
       NODE_OPTIONS: '--max_old_space_size=4096'
 

@@ -34,6 +34,14 @@ createZip() {
   )
 }
 
+createPrismaZip() {
+  echo "Creating zip of Prisma files"
+  (
+    cd "$ROOT_DIR/packages/common"  
+    zip -qr prisma.zip ./prisma
+  )
+}
+
 verifyMarkdown() {
   npm run generate -w best-practices
 
@@ -55,6 +63,7 @@ verifyMarkdown
 createZip "interactive-monitor"
 createZip "snyk-integrator"
 createZip "dependency-graph-integrator"
+createPrismaZip
 createLambdaWithPrisma "repocop"
 createLambdaWithPrisma "data-audit"
 createLambdaWithPrisma "github-actions-usage"
