@@ -44,8 +44,13 @@ deployments.set('upload-prisma-migrations', {
 	app: 'prisma-migrate-task',
 	dependencies,
 	parameters: {
-		bucketSsmKey: `/${stack}/prisma-migrate-task-bucket`,
-		prefixStage: true,
+		// TODO: refactor once this is working...
+		bucketSsmKeyStageParam: {
+			CODE: '/CODE/deploy/prisma-migrate-task-bucket',
+			PROD: '/PROD/deploy/prisma-migrate-task-bucket',
+		},
+		prefixStage: false,
+		prefixStack: false,
 		publicReadAcl: false,
 		cacheControl: 'public, max-age=315360000, immutable',
 	},
