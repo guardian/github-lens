@@ -41,6 +41,7 @@ import { addCloudqueryEcsCluster } from './cloudquery';
 import { addDataAuditLambda } from './data-audit';
 import { addGithubActionsUsageLambda } from './github-actions-usage';
 import { InteractiveMonitor } from './interactive-monitor';
+import { addPrismaMigrateTask } from './prisma-migrate-task';
 import { Repocop } from './repocop';
 
 interface ServiceCatalogueProps extends GuStackProps {
@@ -228,5 +229,7 @@ export class ServiceCatalogue extends GuStack {
 			db,
 			dbAccess: applicationToPostgresSecurityGroup,
 		});
+
+		addPrismaMigrateTask(this, {});
 	}
 }
