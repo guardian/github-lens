@@ -24,3 +24,33 @@ new ServiceCatalogue(app, 'ServiceCatalogue-CODE', {
 	rdsDeletionProtection: false,
 	cloudFormationStackName: 'deploy-CODE-service-catalogue',
 });
+
+// --- Add an additional S3 deployment type and synth riff-raff.yml ---
+
+const riffRaff = new RiffRaffYamlFile(app);
+
+const deployments = riffRaff.riffRaffYaml.deployments;
+
+/**
+ * All cfn-based dependencies should be applied before this s3 deployment
+ */
+const dependencies = [...deployments.entries()]
+	.filter(([, { type }]) => type === 'cloud-formation')
+	.map(([key]) => key);
+
+deployments.set('upload-prisma-migrations', {
+	type: 'aws-s3',
+	contentDirectory: 'prisma',
+	app: 'prisma-migrate-task',
+	dependencies,
+	parameters: {
+		bucketSsmKey: `/${stack}/prisma-migrate-task-bucket`,
+		prefixStage: true,
+		publicReadAcl: false,
+		cacheControl: 'public, max-age=315360000, immutable',
+	},
+	regions: new Set([region]),
+	stacks: new Set([stack]),
+});
+
+riffRaff.synth();
