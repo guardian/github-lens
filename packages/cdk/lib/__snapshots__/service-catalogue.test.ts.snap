@@ -16386,7 +16386,7 @@ spec:
               "",
             ],
             "Essential": true,
-            "Image": "public.ecr.aws/amazonlinux/amazonlinux:latest",
+            "Image": "ghcr.io/guardian/service-catalogue/prisma-migrate:1",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {

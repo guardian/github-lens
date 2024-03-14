@@ -78,7 +78,7 @@ export function addPrismaMigrateTask(
 	});
 
 	taskDefinition.addContainer(`${app}Container`, {
-		image: Images.amazonLinux,
+		image: Images.prismaMigrate,
 		entryPoint: [''],
 		environment: {
 			// ...
