@@ -38,7 +38,7 @@ const dependencies = [...deployments.entries()]
 	.filter(([, { type }]) => type === 'cloud-formation')
 	.map(([key]) => key);
 
-deployments.set('upload-prisma-migrations', {
+deployments.set('prisma-migrations', {
 	type: 'aws-s3',
 	contentDirectory: 'prisma',
 	app: 'prisma-migrate-task',
