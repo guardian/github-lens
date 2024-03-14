@@ -5,6 +5,7 @@ import type {
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
 import {
 	GuAnghammaradTopicParameter,
+	GuLoggingStreamNameParameter,
 	GuStack,
 } from '@guardian/cdk/lib/constructs/core';
 import {
@@ -23,6 +24,7 @@ import {
 	Port,
 } from 'aws-cdk-lib/aws-ec2';
 import { Schedule } from 'aws-cdk-lib/aws-events';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import type { DatabaseInstanceProps } from 'aws-cdk-lib/aws-rds';
 import {
 	CaCertificate,
@@ -152,7 +154,7 @@ export class ServiceCatalogue extends GuStack {
 			secretName: `/${stage}/${stack}/${app}/snyk-credentials`,
 		});
 
-		addCloudqueryEcsCluster(this, {
+		const cloudqueryCluster = addCloudqueryEcsCluster(this, {
 			nonProdSchedule,
 			db,
 			vpc,
@@ -230,6 +232,28 @@ export class ServiceCatalogue extends GuStack {
 			dbAccess: applicationToPostgresSecurityGroup,
 		});
 
-		addPrismaMigrateTask(this, {});
+		// TODO - Only retrieve this in one place and pass down
+		const loggingStreamName =
+			GuLoggingStreamNameParameter.getInstance(this).valueAsString;
+
+		const loggingStreamArn = this.formatArn({
+			service: 'kinesis',
+			resource: 'stream',
+			resourceName: loggingStreamName,
+		});
+
+		const logShippingPolicy = new PolicyStatement({
+			actions: ['kinesis:Describe*', 'kinesis:Put*'],
+			effect: Effect.ALLOW,
+			resources: [loggingStreamArn],
+		});
+
+		addPrismaMigrateTask(this, {
+			// TODO - Do we want to add the prisma migrate task to the CQ ECS cluster?
+			// We could create its own cluster
+			cluster: cloudqueryCluster,
+			loggingStreamName,
+			logShippingPolicy,
+		});
 	}
 }
