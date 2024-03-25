@@ -307,10 +307,15 @@ export function collectAndFormatUrgentSnykAlerts(
 	repo: Repository,
 	snykIssues: SnykIssue[],
 	snykProjects: SnykProject[],
+	view_repo_ownership: view_repo_ownership[],
 ): RepocopVulnerability[] {
 	if (!isProduction(repo)) {
 		return [];
 	}
+
+	const repoOwners = view_repo_ownership
+		.filter((owner) => owner.full_repo_name === repo.full_name)
+		.map((owner) => owner.github_team_slug);
 
 	const snykProjectIdsForRepo = snykProjects
 		.filter((project) => {
@@ -323,8 +328,13 @@ export function collectAndFormatUrgentSnykAlerts(
 		.flatMap((projectId) => getIssuesForProject(projectId, snykIssues))
 		.filter((i) => !i.attributes.ignored);
 
-	const processedVulns = snykIssuesForRepo.map((v) =>
-		snykAlertToRepocopVulnerability(repo.full_name, v, snykProjects),
+	const processedVulns = snykIssuesForRepo.flatMap((v) =>
+		snykAlertToRepocopVulnerability(
+			repo.full_name,
+			v,
+			snykProjects,
+			repoOwners,
+		),
 	);
 
 	const relevantVulns = processedVulns.filter(
@@ -405,11 +415,13 @@ export function evaluateOneRepo(
 	latestSnykIssues: SnykIssue[],
 	snykProjects: SnykProject[],
 	reposOnSnyk: string[],
+	repoOwners: view_repo_ownership[],
 ): EvaluationResult {
 	const snykAlertsForRepo = collectAndFormatUrgentSnykAlerts(
 		repo,
 		latestSnykIssues,
 		snykProjects,
+		repoOwners,
 	);
 
 	const vulnerabilities = snykAlertsForRepo.concat(
@@ -444,30 +456,36 @@ export function evaluateOneRepo(
 export function dependabotAlertToRepocopVulnerability(
 	fullName: string,
 	alert: Alert,
-): RepocopVulnerability {
+	repoOwners: string[],
+): RepocopVulnerability[] {
 	const CVEs = alert.security_advisory.identifiers
 		.filter((i) => i.type === 'CVE')
 		.map((i) => i.value);
 
-	return {
-		open: alert.state === 'open',
-		full_name: fullName,
-		source: 'Dependabot',
-		severity: alert.security_advisory.severity,
-		package: alert.security_vulnerability.package.name,
-		urls: alert.security_advisory.references.map((ref) => ref.url),
-		ecosystem: alert.security_vulnerability.package.ecosystem,
-		alert_issue_date: alert.created_at,
-		is_patchable: !!alert.security_vulnerability.first_patched_version,
-		cves: CVEs,
-	};
+	return repoOwners.map((o) => {
+		const full_name = fullName;
+		return {
+			full_name,
+			open: alert.state === 'open',
+			source: 'Dependabot',
+			severity: alert.security_advisory.severity,
+			package: alert.security_vulnerability.package.name,
+			urls: alert.security_advisory.references.map((ref) => ref.url),
+			ecosystem: alert.security_vulnerability.package.ecosystem,
+			alert_issue_date: new Date(alert.created_at),
+			is_patchable: !!alert.security_vulnerability.first_patched_version,
+			cves: CVEs,
+			repo_owner: o,
+		};
+	});
 }
 
 export function snykAlertToRepocopVulnerability(
 	fullName: string,
 	issue: SnykIssue,
 	projects: SnykProject[],
-): RepocopVulnerability {
+	owners: string[],
+): RepocopVulnerability[] {
 	const packages = (issue.attributes.coordinates ?? [])
 		.flatMap((c) => c.representations)
 		.filter((r) => r !== null) as Dependency[];
@@ -485,18 +503,24 @@ export function snykAlertToRepocopVulnerability(
 		...new Set(packages.map((p) => p.dependency.package_name)),
 	].join(', ');
 
-	return {
-		full_name: fullName,
-		open: issue.attributes.status === 'open',
-		source: 'Snyk',
-		severity: stringToSeverity(issue.attributes.effective_severity_level),
-		package: packageName,
-		urls: issue.attributes.problems.map((p) => p.url).filter((u) => !!u),
-		ecosystem: ecosystem ?? 'unknown ecosystem',
-		alert_issue_date: issue.attributes.created_at,
-		is_patchable: isPatchable,
-		cves: issue.attributes.problems.map((p) => p.id),
-	};
+	const vulns: RepocopVulnerability[] = owners.map((o) => {
+		const full_name = fullName;
+		return {
+			full_name,
+			open: issue.attributes.status === 'open',
+			source: 'Snyk',
+			severity: stringToSeverity(issue.attributes.effective_severity_level),
+			package: packageName,
+			urls: issue.attributes.problems.map((p) => p.url).filter((u) => !!u),
+			ecosystem: ecosystem ?? 'unknown ecosystem',
+			alert_issue_date: issue.attributes.created_at,
+			is_patchable: isPatchable,
+			cves: issue.attributes.problems.map((p) => p.id),
+			repo_owner: o,
+		};
+	});
+
+	return vulns;
 }
 
 export async function evaluateRepositories(
@@ -522,7 +546,15 @@ export async function evaluateRepositories(
 		const dependabotAlerts = isProduction(r)
 			? (await getAlertsForRepo(octokit, r.name))
 					?.filter((a) => a.state === 'open')
-					.map((a) => dependabotAlertToRepocopVulnerability(r.full_name, a))
+					.flatMap((a) =>
+						dependabotAlertToRepocopVulnerability(
+							r.full_name,
+							a,
+							owners
+								.filter((o) => o.full_repo_name === r.full_name)
+								.map((o) => o.github_team_slug), //TODO sort this out
+						),
+					)
 			: [];
 		const teamsForRepo = owners.filter((o) => o.full_repo_name === r.full_name);
 		const branchesForRepo = branches.filter((b) => b.repository_id === r.id);
@@ -536,6 +568,7 @@ export async function evaluateRepositories(
 			snykIssues,
 			snykProjects,
 			uniqueReposOnSnyk,
+			owners,
 		);
 	});
 	return Promise.all(evaluatedRepos);
