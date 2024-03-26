@@ -2,7 +2,6 @@ import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import type {
 	PrismaClient,
 	repocop_github_repository_rules,
-	view_repo_ownership,
 } from '@prisma/client';
 import { awsClientConfig } from 'common/aws';
 import { getPrismaClient } from 'common/database';
@@ -11,9 +10,7 @@ import type { Config } from './config';
 import { getConfig } from './config';
 import {
 	collectAndFormatUrgentSnykAlerts,
-	dependabotAlertToRepocopVulnerability,
 	evaluateRepositories,
-	getAlertsForRepo,
 	testExperimentalRepocopFeatures,
 } from './evaluation/repository';
 import { sendToCloudwatch } from './metrics';
@@ -39,18 +36,6 @@ import type {
 	RepocopVulnerability,
 } from './types';
 import { isProduction } from './utils';
-
-function combineVulnWithOwners(
-	vuln: RepocopVulnerability,
-	repoOwners: view_repo_ownership[],
-) {
-	const owners = repoOwners.filter(
-		(owner) => vuln.full_name === owner.full_repo_name,
-	);
-	return owners.length > 0
-		? owners.map((owner) => ({ ...vuln, repo_owner: owner.github_team_slug }))
-		: { ...vuln, repo_owner: 'unknown' };
-}
 
 async function writeEvaluationTable(
 	evaluatedRepos: repocop_github_repository_rules[],
@@ -104,6 +89,12 @@ export async function main() {
 
 	const productionRepos = unarchivedRepos.filter((repo) => isProduction(repo));
 
+	const dependabotAlerts = await getDependabotVulnerabilities(
+		productionRepos.map((r) => r.name),
+		repoOwners,
+		octokit,
+	);
+
 	const allUrgentSnykVulnerabilities = productionRepos.flatMap((repo) =>
 		collectAndFormatUrgentSnykAlerts(
 			repo,
@@ -113,14 +104,10 @@ export async function main() {
 		),
 	);
 
-	const dependabotAlerts = await getDependabotVulnerabilities(
-		productionRepos.map((r) => r.name),
-		repoOwners,
-		octokit,
-	);
-
 	const allVulnerabilities =
 		allUrgentSnykVulnerabilities.concat(dependabotAlerts);
+
+	await writeVulnerabilitiesTable(allVulnerabilities, prisma);
 
 	const evaluationResults: EvaluationResult[] = evaluateRepositories(
 		unarchivedRepos,
@@ -147,14 +134,6 @@ export async function main() {
 	console.warn(
 		`Found ${critical.length} out of date critical vulnerabilities, of which ${criticalPatchable} are patchable`,
 	);
-	/**
-	 * Create repocop vulnerabilities and write to repocop_vulnerabilities table
-	 */
-	const vulnerabilities = evaluationResults
-		.flatMap((result) => result.vulnerabilities)
-		.flatMap((vuln) => combineVulnWithOwners(vuln, repoOwners));
-
-	await writeVulnerabilitiesTable(vulnerabilities, prisma);
 
 	const awsConfig = awsClientConfig(config.stage);
 	const cloudwatch = new CloudWatchClient(awsConfig);
@@ -167,12 +146,7 @@ export async function main() {
 		nonPlaygroundStacks,
 	);
 
-	await createAndSendVulnerabilityDigests(
-		config,
-		teams,
-		repoOwners,
-		evaluationResults,
-	);
+	await createAndSendVulnerabilityDigests(config, teams, allVulnerabilities);
 
 	await sendUnprotectedRepo(repocopRules, config, repoLanguages);
 	await writeEvaluationTable(repocopRules, prisma);

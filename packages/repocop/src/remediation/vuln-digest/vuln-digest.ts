@@ -2,6 +2,7 @@ import type { Action } from '@guardian/anghammarad';
 import { Anghammarad, RequestedChannel } from '@guardian/anghammarad';
 import type { view_repo_ownership } from '@prisma/client';
 import type { Config } from '../../config';
+import { deduplicateVulnerabilitiesByCve } from '../../evaluation/repository';
 import type {
 	EvaluationResult,
 	RepocopVulnerability,
@@ -10,24 +11,6 @@ import type {
 } from '../../types';
 import { vulnSortPredicate } from '../../utils';
 
-function getOwningRepos(
-	team: Team,
-	repoOwners: view_repo_ownership[],
-	results: EvaluationResult[],
-) {
-	const reposOwnedByTeam = repoOwners.filter(
-		(repoOwner) => repoOwner.github_team_id === team.id,
-	);
-
-	const resultsOwnedByTeam = reposOwnedByTeam
-		.map((repo) => {
-			return results.find((result) => result.fullName === repo.full_repo_name);
-		})
-		.filter((result): result is EvaluationResult => result !== undefined);
-
-	return resultsOwnedByTeam;
-}
-
 export function getTopVulns(vulnerabilities: RepocopVulnerability[]) {
 	return vulnerabilities
 		.sort(vulnSortPredicate)
@@ -35,30 +18,26 @@ export function getTopVulns(vulnerabilities: RepocopVulnerability[]) {
 		.sort((v1, v2) => v1.full_name.localeCompare(v2.full_name));
 }
 
-function dateStringToHumanReadable(dateString: string) {
-	const date = new Date(dateString);
-	return date.toDateString();
-}
-
 function createHumanReadableVulnMessage(vuln: RepocopVulnerability): string {
-	const dateString = dateStringToHumanReadable(vuln.alert_issue_date);
 	const ecosystem =
 		vuln.ecosystem === 'maven' ? 'sbt or maven' : vuln.ecosystem;
 
 	return String.raw`[${vuln.full_name}](https://github.com/${vuln.full_name}) contains a [${vuln.severity.toUpperCase()} vulnerability](${vuln.urls[0]}).
-Introduced via **${vuln.package}** on ${dateString}, from ${ecosystem}.
+Introduced via **${vuln.package}** on ${vuln.alert_issue_date.toDateString()}, from ${ecosystem}.
 This vulnerability ${vuln.is_patchable ? 'is ' : 'may *not* be '}patchable.`;
 }
 
-export function createDigest(
+export function createDigest( //TODO test this
 	team: Team,
-	repoOwners: view_repo_ownership[],
-	results: EvaluationResult[],
+	allVulnerabilities: RepocopVulnerability[],
 ): VulnerabilityDigest | undefined {
-	const resultsForTeam = getOwningRepos(team, repoOwners, results);
-	const vulns = resultsForTeam.flatMap((r) => r.vulnerabilities);
+	const vulns = deduplicateVulnerabilitiesByCve(
+		allVulnerabilities.filter((v) => v.repo_owner === team.slug),
+	);
 
 	const totalVulnsCount = vulns.length;
+
+	const vulnerableReposCount = new Set(vulns.map((v) => v.full_name)).size;
 
 	if (totalVulnsCount === 0) {
 		return undefined;
@@ -66,7 +45,7 @@ export function createDigest(
 
 	const topVulns = getTopVulns(vulns);
 	const listedVulnsCount = topVulns.length;
-	const preamble = String.raw`Found ${totalVulnsCount} vulnerabilities across ${resultsForTeam.length} repositories.
+	const preamble = String.raw`Found ${totalVulnsCount} vulnerabilities across ${vulnerableReposCount} repositories.
 Displaying the top ${listedVulnsCount} most urgent.
 Note: DevX only aggregates vulnerability information for repositories with a production topic.`;
 
@@ -125,11 +104,10 @@ async function sendVulnerabilityDigests(
 export async function createAndSendVulnerabilityDigests(
 	config: Config,
 	teams: Team[],
-	repoOwners: view_repo_ownership[],
-	evaluationResults: EvaluationResult[],
+	allVulnerabilities: RepocopVulnerability[],
 ) {
 	const digests = teams
-		.map((t) => createDigest(t, repoOwners, evaluationResults))
+		.map((t) => createDigest(t, allVulnerabilities))
 		.filter((d): d is VulnerabilityDigest => d !== undefined);
 
 	console.log('Logging vulnerability digests');
