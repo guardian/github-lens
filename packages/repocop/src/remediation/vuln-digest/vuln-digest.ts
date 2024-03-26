@@ -1,10 +1,8 @@
 import type { Action } from '@guardian/anghammarad';
 import { Anghammarad, RequestedChannel } from '@guardian/anghammarad';
-import type { view_repo_ownership } from '@prisma/client';
 import type { Config } from '../../config';
 import { deduplicateVulnerabilitiesByCve } from '../../evaluation/repository';
 import type {
-	EvaluationResult,
 	RepocopVulnerability,
 	Team,
 	VulnerabilityDigest,
