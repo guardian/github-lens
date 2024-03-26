@@ -120,10 +120,7 @@ export async function main() {
 
 	const repocopRules = evaluationResults.map((r) => r.repocopRules);
 	const severityPredicate = (x: RepocopVulnerability) => x.severity === 'high';
-	const [high, critical] = partition(
-		evaluationResults.flatMap((r) => r.vulnerabilities),
-		severityPredicate,
-	);
+	const [high, critical] = partition(allVulnerabilities, severityPredicate);
 
 	const highPatchable = high.filter((x) => x.is_patchable).length;
 	const criticalPatchable = critical.filter((x) => x.is_patchable).length;

@@ -406,7 +406,6 @@ export function evaluateOneRepo(
 	return {
 		fullName: repo.full_name,
 		repocopRules,
-		vulnerabilities: deduplicateVulnerabilitiesByCve(vulnerabilities),
 	};
 }
 

@@ -17,7 +17,7 @@ import type {
 	SnykProject,
 	Team,
 } from './types';
-import { findOwnerSlugs, toNonEmptyArray } from './utils';
+import { toNonEmptyArray } from './utils';
 
 export async function getRepositories(
 	client: PrismaClient,

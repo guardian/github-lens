@@ -180,7 +180,6 @@ export type RepocopVulnerability = Omit<repocop_vulnerabilities, 'id'>;
 export interface EvaluationResult {
 	fullName: string;
 	repocopRules: repocop_github_repository_rules;
-	vulnerabilities: RepocopVulnerability[];
 }
 
 export interface VulnerabilityDigest {
