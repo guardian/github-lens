@@ -3,7 +3,6 @@ import type {
 	aws_cloudformation_stacks,
 	github_repositories,
 	github_teams,
-	repocop_github_repository_rules,
 	repocop_vulnerabilities,
 } from '@prisma/client';
 
