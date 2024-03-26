@@ -29,8 +29,7 @@ function evaluateRepoTestHelper(
 	owners: view_repo_ownership[] = [],
 	languages: github_languages[] = [],
 	dependabotAlerts: RepocopVulnerability[] = [],
-	latestSnykIssues: SnykIssue[] = [],
-	snykProjects: SnykProject[] = [],
+	snykVulnerabilities: RepocopVulnerability[] = [],
 	reposOnSnyk: string[] = [],
 ) {
 	return evaluateOneRepo(
@@ -39,8 +38,7 @@ function evaluateRepoTestHelper(
 		branches,
 		owners,
 		languages,
-		latestSnykIssues,
-		snykProjects,
+		snykVulnerabilities,
 		reposOnSnyk,
 	).repocopRules;
 }

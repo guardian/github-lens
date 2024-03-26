@@ -10,6 +10,7 @@ import { partition, stageAwareOctokit } from 'common/functions';
 import type { Config } from './config';
 import { getConfig } from './config';
 import {
+	collectAndFormatUrgentSnykAlerts,
 	evaluateRepositories,
 	testExperimentalRepocopFeatures,
 } from './evaluation/repository';
@@ -34,6 +35,19 @@ import type {
 	EvaluationResult,
 	RepocopVulnerability,
 } from './types';
+import { isProduction } from './utils';
+
+function combineVulnWithOwners(
+	vuln: RepocopVulnerability,
+	repoOwners: view_repo_ownership[],
+) {
+	const owners = repoOwners.filter(
+		(owner) => vuln.full_name === owner.full_repo_name,
+	);
+	return owners.length > 0
+		? owners.map((owner) => ({ ...vuln, repo_owner: owner.github_team_slug }))
+		: { ...vuln, repo_owner: 'unknown' };
+}
 
 async function writeEvaluationTable(
 	evaluatedRepos: repocop_github_repository_rules[],
@@ -85,12 +99,18 @@ export async function main() {
 	const teams = await getTeams(prisma);
 	const repoOwners = await getRepoOwnership(prisma);
 
+	const productionRepos = unarchivedRepos.filter((repo) => isProduction(repo));
+
+	const allUrgentSnykVulnerabilities = productionRepos.flatMap((repo) =>
+		collectAndFormatUrgentSnykAlerts(repo, snykIssues, snykProjects),
+	);
+
 	const evaluationResults: EvaluationResult[] = await evaluateRepositories(
 		unarchivedRepos,
 		branches,
 		repoOwners,
 		repoLanguages,
-		snykIssues,
+		allUrgentSnykVulnerabilities,
 		snykProjects,
 		octokit,
 	);
@@ -111,19 +131,6 @@ export async function main() {
 	console.warn(
 		`Found ${critical.length} out of date critical vulnerabilities, of which ${criticalPatchable} are patchable`,
 	);
-
-	function combineVulnWithOwners(
-		vuln: RepocopVulnerability,
-		repoOwners: view_repo_ownership[],
-	) {
-		const owners = repoOwners.filter(
-			(owner) => vuln.full_name === owner.full_repo_name,
-		);
-		return owners.length > 0
-			? owners.map((owner) => ({ ...vuln, repo_owner: owner.github_team_slug }))
-			: { ...vuln, repo_owner: 'unknown' };
-	}
-
 	/**
 	 * Create repocop vulnerabilities and write to repocop_vulnerabilities table
 	 */

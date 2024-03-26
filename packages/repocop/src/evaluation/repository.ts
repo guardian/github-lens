@@ -402,14 +402,11 @@ export function evaluateOneRepo(
 	allBranches: github_repository_branches[],
 	teams: view_repo_ownership[],
 	repoLanguages: github_languages[],
-	latestSnykIssues: SnykIssue[],
-	snykProjects: SnykProject[],
+	snykVulnerabilities: RepocopVulnerability[], //TODO test this
 	reposOnSnyk: string[],
 ): EvaluationResult {
-	const snykAlertsForRepo = collectAndFormatUrgentSnykAlerts(
-		repo,
-		latestSnykIssues,
-		snykProjects,
+	const snykAlertsForRepo = snykVulnerabilities.filter(
+		(v) => v.full_name === repo.full_name,
 	);
 
 	const vulnerabilities = snykAlertsForRepo.concat(
@@ -504,7 +501,7 @@ export async function evaluateRepositories(
 	branches: github_repository_branches[],
 	owners: view_repo_ownership[],
 	repoLanguages: github_languages[],
-	snykIssues: SnykIssue[],
+	snykVulnerabilities: RepocopVulnerability[],
 	snykProjects: SnykProject[],
 	octokit: Octokit,
 ): Promise<EvaluationResult[]> {
@@ -533,8 +530,7 @@ export async function evaluateRepositories(
 			branchesForRepo,
 			teamsForRepo,
 			repoLanguages,
-			snykIssues,
-			snykProjects,
+			snykVulnerabilities,
 			uniqueReposOnSnyk,
 		);
 	});
