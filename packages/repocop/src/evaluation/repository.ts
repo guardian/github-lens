@@ -13,7 +13,6 @@ import type {
 	Alert,
 	AwsCloudFormationStack,
 	Dependency,
-	EvaluationResult,
 	RepoAndStack,
 	RepocopVulnerability,
 	Repository,
@@ -312,13 +311,12 @@ export function collectAndFormatUrgentSnykAlerts(
 }
 
 export function testExperimentalRepocopFeatures(
-	evaluationResults: EvaluationResult[],
+	evaluationResults: repocop_github_repository_rules[],
 	unarchivedRepos: Repository[],
 	archivedRepos: Repository[],
 	nonPlaygroundStacks: AwsCloudFormationStack[],
 ) {
-	const evaluatedRepos = evaluationResults.map((r) => r.repocopRules);
-	const unmaintinedReposCount = evaluatedRepos.filter(
+	const unmaintinedReposCount = evaluationResults.filter(
 		(repo) => repo.archiving === false,
 	).length;
 
@@ -380,13 +378,13 @@ export function evaluateOneRepo(
 	teams: view_repo_ownership[],
 	repoLanguages: github_languages[],
 	reposOnSnyk: string[],
-): EvaluationResult {
+): repocop_github_repository_rules {
 	const vulnerabilities = potentialVulnerabilities.filter(
 		(v) => v.full_name === repo.full_name,
 	);
 	hasOldAlerts(vulnerabilities, repo);
 
-	const repocopRules: repocop_github_repository_rules = {
+	return {
 		full_name: repo.full_name,
 		default_branch_name: hasDefaultBranchNameMain(repo),
 		branch_protection: hasBranchProtection(repo, allBranches),
@@ -401,11 +399,6 @@ export function evaluateOneRepo(
 			reposOnSnyk,
 		),
 		evaluated_on: new Date(),
-	};
-
-	return {
-		fullName: repo.full_name,
-		repocopRules,
 	};
 }
 
@@ -492,7 +485,7 @@ export function evaluateRepositories( //TODO can be tested
 	repoLanguages: github_languages[],
 	vulnerabilities: RepocopVulnerability[],
 	snykProjects: SnykProject[],
-): EvaluationResult[] {
+): repocop_github_repository_rules[] {
 	const evaluatedRepos = repositories.map((r) => {
 		const isMainBranchPredicate = (x: Tag) =>
 			x.key === 'branch' && (x.value === 'main' || x.value === 'master');

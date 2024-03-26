@@ -162,25 +162,7 @@ export interface SnykProject {
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'unknown';
 
-// export type RepocopVulnerability = {
-// 	source: 'Dependabot' | 'Snyk';
-// 	full_name: string;
-// 	open: boolean;
-// 	severity: Severity;
-// 	package: string;
-// 	urls: string[];
-// 	ecosystem: string;
-// 	alert_issue_date: string;
-// 	is_patchable: boolean;
-// 	cves: string[];
-// };
-
 export type RepocopVulnerability = Omit<repocop_vulnerabilities, 'id'>;
-
-export interface EvaluationResult {
-	fullName: string;
-	repocopRules: repocop_github_repository_rules;
-}
 
 export interface VulnerabilityDigest {
 	teamSlug: string;
