@@ -65,8 +65,9 @@ describe('vulnSortingPredicate', () => {
 			urls: [],
 			open: true,
 			source: 'Dependabot',
-			alert_issue_date: '',
+			alert_issue_date: new Date(),
 			cves: [],
+			repo_owner: 'test',
 		};
 		const criticalNotPatchable: RepocopVulnerability = {
 			...criticalPatchable,
