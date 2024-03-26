@@ -28,17 +28,15 @@ function evaluateRepoTestHelper(
 	branches: github_repository_branches[] = [],
 	owners: view_repo_ownership[] = [],
 	languages: github_languages[] = [],
-	dependabotAlerts: RepocopVulnerability[] = [],
-	snykVulnerabilities: RepocopVulnerability[] = [],
+	potentialVulnerabilities: RepocopVulnerability[] = [],
 	reposOnSnyk: string[] = [],
 ) {
 	return evaluateOneRepo(
-		dependabotAlerts,
+		potentialVulnerabilities,
 		repo,
 		branches,
 		owners,
 		languages,
-		snykVulnerabilities,
 		reposOnSnyk,
 	).repocopRules;
 }

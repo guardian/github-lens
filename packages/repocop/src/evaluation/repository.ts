@@ -397,20 +397,15 @@ export function deduplicateVulnerabilitiesByCve(
  * Apply rules to a repository as defined in https://github.com/guardian/recommendations/blob/main/best-practices.md.
  */
 export function evaluateOneRepo(
-	dependabotAlertsForRepo: RepocopVulnerability[] | undefined,
+	potentialVulnerabilities: RepocopVulnerability[], //TODO test this
 	repo: Repository,
 	allBranches: github_repository_branches[],
 	teams: view_repo_ownership[],
 	repoLanguages: github_languages[],
-	snykVulnerabilities: RepocopVulnerability[], //TODO test this
 	reposOnSnyk: string[],
 ): EvaluationResult {
-	const snykAlertsForRepo = snykVulnerabilities.filter(
+	const vulnerabilities = potentialVulnerabilities.filter(
 		(v) => v.full_name === repo.full_name,
-	);
-
-	const vulnerabilities = snykAlertsForRepo.concat(
-		dependabotAlertsForRepo ?? [],
 	);
 	hasOldAlerts(vulnerabilities, repo);
 
@@ -524,13 +519,14 @@ export async function evaluateRepositories(
 		const teamsForRepo = owners.filter((o) => o.full_repo_name === r.full_name);
 		const branchesForRepo = branches.filter((b) => b.repository_id === r.id);
 
+		const allAlerts = (dependabotAlerts ?? []).concat(snykVulnerabilities);
+
 		return evaluateOneRepo(
-			dependabotAlerts,
+			allAlerts,
 			r,
 			branchesForRepo,
 			teamsForRepo,
 			repoLanguages,
-			snykVulnerabilities,
 			uniqueReposOnSnyk,
 		);
 	});
