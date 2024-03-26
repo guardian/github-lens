@@ -22,7 +22,7 @@ function createHumanReadableVulnMessage(vuln: RepocopVulnerability): string {
 
 	console.log(vuln.full_name, vuln.alert_issue_date);
 
-	const date: string = vuln.alert_issue_date.toDateString();
+	const date: string = new Date(vuln.alert_issue_date).toDateString();
 
 	return String.raw`[${vuln.full_name}](https://github.com/${vuln.full_name}) contains a [${vuln.severity.toUpperCase()} vulnerability](${vuln.urls[0]}).
 Introduced via **${vuln.package}** on ${date}, from ${ecosystem}.
