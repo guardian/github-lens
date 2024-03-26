@@ -11,11 +11,14 @@ import type { Config } from './config';
 import { getConfig } from './config';
 import {
 	collectAndFormatUrgentSnykAlerts,
+	dependabotAlertToRepocopVulnerability,
 	evaluateRepositories,
+	getAlertsForRepo,
 	testExperimentalRepocopFeatures,
 } from './evaluation/repository';
 import { sendToCloudwatch } from './metrics';
 import {
+	getDependabotVulnerabilities,
 	getRepoOwnership,
 	getRepositories,
 	getRepositoryBranches,
@@ -102,17 +105,30 @@ export async function main() {
 	const productionRepos = unarchivedRepos.filter((repo) => isProduction(repo));
 
 	const allUrgentSnykVulnerabilities = productionRepos.flatMap((repo) =>
-		collectAndFormatUrgentSnykAlerts(repo, snykIssues, snykProjects),
+		collectAndFormatUrgentSnykAlerts(
+			repo,
+			snykIssues,
+			snykProjects,
+			repoOwners,
+		),
 	);
 
-	const evaluationResults: EvaluationResult[] = await evaluateRepositories(
+	const dependabotAlerts = await getDependabotVulnerabilities(
+		productionRepos.map((r) => r.name),
+		repoOwners,
+		octokit,
+	);
+
+	const allVulnerabilities =
+		allUrgentSnykVulnerabilities.concat(dependabotAlerts);
+
+	const evaluationResults: EvaluationResult[] = evaluateRepositories(
 		unarchivedRepos,
 		branches,
 		repoOwners,
 		repoLanguages,
-		allUrgentSnykVulnerabilities,
+		allVulnerabilities,
 		snykProjects,
-		octokit,
 	);
 
 	const repocopRules = evaluationResults.map((r) => r.repocopRules);

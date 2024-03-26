@@ -54,12 +54,14 @@ const nullBranch: github_repository_branches = {
 	protected: null,
 };
 
+const now = new Date();
+
 export const nullRepo: Repository = {
 	full_name: '',
 	name: '',
 	archived: false,
 	id: BigInt(0),
-	created_at: new Date(),
+	created_at: now,
 	updated_at: null,
 	pushed_at: null,
 	topics: [],
@@ -87,6 +89,17 @@ const nullOwner: view_repo_ownership = {
 	galaxies_team: null,
 	team_contact_email: null,
 };
+
+const TEAM_NAME = 'my_team';
+
+const owners: view_repo_ownership[] = [
+	{
+		...nullOwner,
+		full_repo_name: thePerfectRepo.full_name,
+		github_team_id: 1n,
+		github_team_slug: TEAM_NAME,
+	},
+];
 
 const exampleSnykProject: SnykProject = {
 	id: 'project1',
@@ -565,14 +578,15 @@ const oldCriticalDependabotVuln: RepocopVulnerability = {
 	package: 'ansible',
 	urls: [],
 	ecosystem: 'pip',
-	alert_issue_date: '2021-01-01T00:00:00.000Z',
+	alert_issue_date: new Date('2021-01-01T00:00:00.000Z'), //'2021-01-01T00:00:00.000Z',
 	is_patchable: true,
 	cves: ['CVE-2021-1234'],
+	repo_owner: TEAM_NAME,
 };
 
 const newCriticalDependabotVuln: RepocopVulnerability = {
 	...oldCriticalDependabotVuln,
-	alert_issue_date: new Date().toISOString(),
+	alert_issue_date: now,
 };
 
 const oldHighDependabotVuln: RepocopVulnerability = {
@@ -582,7 +596,7 @@ const oldHighDependabotVuln: RepocopVulnerability = {
 
 const newHighDependabotVuln: RepocopVulnerability = {
 	...oldHighDependabotVuln,
-	alert_issue_date: new Date().toISOString(),
+	alert_issue_date: now,
 };
 
 describe('NO RULE - Dependabot alerts', () => {
@@ -608,7 +622,7 @@ describe('NO RULE - Dependabot alerts', () => {
 
 		const thirteenDayOldHigh: RepocopVulnerability = {
 			...oldHighDependabotVuln,
-			alert_issue_date: thirteenDaysAgo.toISOString(),
+			alert_issue_date: thirteenDaysAgo,
 		};
 
 		expect(hasOldAlerts([thirteenDayOldHigh], thePerfectRepo)).toBe(false);
@@ -627,13 +641,13 @@ const snykIssue: SnykIssue = {
 				url: 'example.com',
 				type: 'vulnerability',
 				source: 'NVD',
-				updated_at: '', //or Date?
-				disclosed_at: '', //or Date?
-				discovered_at: '', //or Date?
+				updated_at: now,
+				disclosed_at: now,
+				discovered_at: now,
 			},
 		],
-		created_at: 'someTZdate', //or Date?
-		updated_at: '', //or Date?
+		created_at: new Date('01-01-2020'),
+		updated_at: now,
 		coordinates: [
 			{
 				remedies: null,
@@ -715,7 +729,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 	};
 
 	test('Should not be detected if no projects or issues are passed', () => {
-		const result = collectAndFormatUrgentSnykAlerts(thePerfectRepo, [], []);
+		const result = collectAndFormatUrgentSnykAlerts(thePerfectRepo, [], [], []);
 		expect(result.length).toEqual(0);
 	});
 	test('Should be detected if a repo, project, and issue match', () => {
@@ -723,6 +737,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 			thePerfectRepo,
 			[snykIssue],
 			[exampleSnykProject],
+			owners,
 		);
 		expect(result.length).toEqual(1);
 	});
@@ -735,6 +750,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 			nonProdRepo,
 			[snykIssue],
 			[exampleSnykProject],
+			owners,
 		);
 		expect(result.length).toEqual(0);
 	});
@@ -747,6 +763,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 			thePerfectRepo,
 			[snykIssue],
 			[untaggedProject],
+			owners,
 		);
 		expect(result.length).toEqual(0);
 	});
@@ -766,6 +783,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 			thePerfectRepo,
 			[lowSeverity, mediumSeverity],
 			[exampleSnykProject],
+			owners,
 		);
 		expect(result.length).toEqual(0);
 	});
@@ -778,6 +796,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 			thePerfectRepo,
 			[ignoredIssue],
 			[exampleSnykProject],
+			owners,
 		);
 		expect(result.length).toEqual(0);
 	});
@@ -791,6 +810,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 				},
 			],
 			[exampleSnykProject],
+			owners,
 		);
 		expect(result.map((r) => r.is_patchable)).toEqual([false]);
 	});
@@ -835,6 +855,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 			thePerfectRepo,
 			[pinnableIssue, patchableIssue, upgradableIssue],
 			[exampleSnykProject],
+			owners,
 		);
 		expect(result.map((r) => r.is_patchable)).toEqual([true, true, true]);
 	});
@@ -842,12 +863,15 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 
 describe('NO RULE - Vulnerabilities from Dependabot', () => {
 	test('Should be parseable into a common format', () => {
-		const fullName = 'guardian/myrepo';
-		const result: RepocopVulnerability[] = example.map((alert) =>
-			dependabotAlertToRepocopVulnerability(fullName, alert),
+		const result: RepocopVulnerability[] = example.flatMap((alert) =>
+			dependabotAlertToRepocopVulnerability(
+				thePerfectRepo.full_name,
+				alert,
+				owners,
+			),
 		);
 		const expected1: RepocopVulnerability = {
-			full_name: fullName,
+			full_name: thePerfectRepo.full_name,
 			source: 'Dependabot',
 			open: false,
 			severity: 'high',
@@ -860,13 +884,14 @@ describe('NO RULE - Vulnerabilities from Dependabot', () => {
 				'http://www.securitytracker.com/id/1040422',
 			],
 			ecosystem: 'pip',
-			alert_issue_date: '2022-06-15T07:43:03Z',
+			alert_issue_date: new Date('2022-06-15T07:43:03Z'),
 			is_patchable: true,
 			cves: ['CVE-2018-6188'],
+			repo_owner: TEAM_NAME,
 		};
 
 		const expected2: RepocopVulnerability = {
-			full_name: fullName,
+			full_name: thePerfectRepo.full_name,
 			source: 'Dependabot',
 			open: true,
 			severity: 'medium',
@@ -877,9 +902,10 @@ describe('NO RULE - Vulnerabilities from Dependabot', () => {
 				'https://bugzilla.redhat.com/show_bug.cgi?id=1916813',
 			],
 			ecosystem: 'pip',
-			alert_issue_date: '2022-06-14T15:21:52Z',
+			alert_issue_date: new Date('2022-06-14T15:21:52Z'),
 			is_patchable: true,
 			cves: ['CVE-2021-20191'],
+			repo_owner: TEAM_NAME,
 		};
 
 		expect(result).toStrictEqual([expected1, expected2]);
@@ -888,33 +914,40 @@ describe('NO RULE - Vulnerabilities from Dependabot', () => {
 
 describe('NO RULE - Vulnerabilities from Snyk', () => {
 	test('Should be parseable into a common format', () => {
-		const fullName = 'guardian/myrepo';
-		const result = snykAlertToRepocopVulnerability(fullName, snykIssue, [
-			exampleSnykProject,
-		]);
+		const result = snykAlertToRepocopVulnerability(
+			thePerfectRepo.full_name,
+			snykIssue,
+			[exampleSnykProject],
+			owners,
+		);
 		console.log(result);
-		expect(result.source).toEqual('Snyk');
-		expect(result.open).toEqual(true);
-		expect(result).toStrictEqual({
-			full_name: fullName,
-			open: true,
-			source: 'Snyk',
-			severity: 'high',
-			package: 'fetch',
-			urls: ['example.com'],
-			ecosystem: 'npm',
-			alert_issue_date: 'someTZdate',
-			is_patchable: true,
-			cves: ['CVE-1234'],
-		});
+		expect(result.map((r) => r.source)).toEqual(['Snyk']);
+		expect(result.map((r) => r.open)).toEqual([true]);
+		expect(result).toStrictEqual([
+			{
+				full_name: thePerfectRepo.full_name,
+				open: true,
+				source: 'Snyk',
+				severity: 'high',
+				package: 'fetch',
+				urls: ['example.com'],
+				ecosystem: 'npm',
+				alert_issue_date: new Date('01-01-2020'),
+				is_patchable: true,
+				cves: ['CVE-1234'],
+				repo_owner: TEAM_NAME,
+			},
+		]);
 	});
 
 	test('Should dedupe package names,', () => {
-		const fullName = 'guardian/myrepo';
-		const result = snykAlertToRepocopVulnerability(fullName, snykIssue3Coords, [
-			exampleSnykProject,
-		]);
-		expect(result.package).toEqual('fetch, axios');
+		const result = snykAlertToRepocopVulnerability(
+			thePerfectRepo.full_name,
+			snykIssue3Coords,
+			[exampleSnykProject],
+			owners,
+		);
+		expect(result.map((r) => r.package)).toEqual(['fetch, axios']);
 	});
 });
 
@@ -928,9 +961,10 @@ describe('Deduplication of repocop vulnerabilities', () => {
 		package: 'django',
 		urls: ['https://nvd.nist.gov/vuln/detail/CVE-2018-6188'],
 		ecosystem: 'pip',
-		alert_issue_date: '2022-06-15T07:43:03Z',
+		alert_issue_date: new Date('2022-06-15T07:43:03Z'),
 		is_patchable: true,
 		cves: ['CVE-2018-6188'],
+		repo_owner: TEAM_NAME,
 	};
 	const vuln2: RepocopVulnerability = {
 		full_name: fullName,
@@ -940,9 +974,10 @@ describe('Deduplication of repocop vulnerabilities', () => {
 		package: 'django',
 		urls: ['https://nvd.nist.gov/vuln/detail/CVE-2018-6188'],
 		ecosystem: 'pip',
-		alert_issue_date: '2022-06-15T07:43:03Z',
+		alert_issue_date: new Date('2022-06-15T07:43:03Z'),
 		is_patchable: true,
 		cves: ['CVE-2018-6188'],
+		repo_owner: TEAM_NAME,
 	};
 	const actual = deduplicateVulnerabilitiesByCve([vuln1, vuln2]);
 	test('Should happen if two vulnerabilities share the same CVEs', () => {

@@ -1,3 +1,4 @@
+import type { view_repo_ownership } from '@prisma/client';
 import type {
 	NonEmptyArray,
 	RepocopVulnerability,
@@ -45,3 +46,13 @@ export const vulnSortPredicate = (
 		return criticalFirstPredicate(v1);
 	}
 };
+
+//TODO TEST
+export function findOwnerSlugs(
+	fullName: string,
+	repoOwners: view_repo_ownership[],
+) {
+	return repoOwners
+		.filter((owner) => owner.full_repo_name === fullName)
+		.map((owner) => owner.github_team_slug);
+}

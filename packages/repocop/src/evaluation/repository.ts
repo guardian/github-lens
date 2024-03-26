@@ -2,6 +2,7 @@ import type {
 	github_languages,
 	github_repository_branches,
 	repocop_github_repository_rules,
+	repocop_vulnerabilities,
 	view_repo_ownership,
 } from '@prisma/client';
 import { partition } from 'common/src/functions';
@@ -23,7 +24,12 @@ import type {
 	SnykProject,
 	Tag,
 } from '../types';
-import { isProduction, stringToSeverity, vulnSortPredicate } from '../utils';
+import {
+	findOwnerSlugs,
+	isProduction,
+	stringToSeverity,
+	vulnSortPredicate,
+} from '../utils';
 
 /**
  * Evaluate the following rule for a Github repository:
@@ -219,39 +225,6 @@ function findArchivedReposWithStacks(
 	return archivedReposWithPotentialStacks;
 }
 
-export async function getAlertsForRepo(
-	octokit: Octokit,
-	name: string,
-): Promise<Alert[] | undefined> {
-	if (name.startsWith('guardian/')) {
-		name = name.replace('guardian/', '');
-	}
-
-	try {
-		const alert: DependabotVulnResponse =
-			await octokit.rest.dependabot.listAlertsForRepo({
-				owner: 'guardian',
-				repo: name,
-				per_page: 100,
-				severity: 'critical,high',
-				state: 'open',
-				sort: 'created',
-				direction: 'asc', //retrieve oldest vulnerabilities first
-			});
-
-		const openRuntimeDependencies = alert.data.filter(
-			(a) => a.dependency.scope !== 'development',
-		);
-		return openRuntimeDependencies;
-	} catch (error) {
-		console.debug(
-			`Dependabot - ${name}: Could not get alerts. Dependabot may not be enabled.`,
-		);
-		console.debug(error);
-		return undefined;
-	}
-}
-
 function vulnerabilityNeedsAddressing(date: Date, severity: string) {
 	const criticalDayCount = 1;
 	const highDayCount = 14;
@@ -307,6 +280,7 @@ export function collectAndFormatUrgentSnykAlerts(
 	repo: Repository,
 	snykIssues: SnykIssue[],
 	snykProjects: SnykProject[],
+	repoOwners: view_repo_ownership[],
 ): RepocopVulnerability[] {
 	if (!isProduction(repo)) {
 		return [];
@@ -323,8 +297,13 @@ export function collectAndFormatUrgentSnykAlerts(
 		.flatMap((projectId) => getIssuesForProject(projectId, snykIssues))
 		.filter((i) => !i.attributes.ignored);
 
-	const processedVulns = snykIssuesForRepo.map((v) =>
-		snykAlertToRepocopVulnerability(repo.full_name, v, snykProjects),
+	const processedVulns = snykIssuesForRepo.flatMap((v) =>
+		snykAlertToRepocopVulnerability(
+			repo.full_name,
+			v,
+			snykProjects,
+			repoOwners,
+		),
 	);
 
 	const relevantVulns = processedVulns.filter(
@@ -364,6 +343,7 @@ export function testExperimentalRepocopFeatures(
 	);
 }
 
+//We will have to deduplicate by CVE and team slug
 export function deduplicateVulnerabilitiesByCve(
 	vulns: RepocopVulnerability[],
 ): RepocopVulnerability[] {
@@ -433,33 +413,12 @@ export function evaluateOneRepo(
 	};
 }
 
-export function dependabotAlertToRepocopVulnerability(
-	fullName: string,
-	alert: Alert,
-): RepocopVulnerability {
-	const CVEs = alert.security_advisory.identifiers
-		.filter((i) => i.type === 'CVE')
-		.map((i) => i.value);
-
-	return {
-		open: alert.state === 'open',
-		full_name: fullName,
-		source: 'Dependabot',
-		severity: alert.security_advisory.severity,
-		package: alert.security_vulnerability.package.name,
-		urls: alert.security_advisory.references.map((ref) => ref.url),
-		ecosystem: alert.security_vulnerability.package.ecosystem,
-		alert_issue_date: alert.created_at,
-		is_patchable: !!alert.security_vulnerability.first_patched_version,
-		cves: CVEs,
-	};
-}
-
 export function snykAlertToRepocopVulnerability(
 	fullName: string,
 	issue: SnykIssue,
 	projects: SnykProject[],
-): RepocopVulnerability {
+	repoOwners: view_repo_ownership[],
+): RepocopVulnerability[] {
 	const packages = (issue.attributes.coordinates ?? [])
 		.flatMap((c) => c.representations)
 		.filter((r) => r !== null) as Dependency[];
@@ -477,7 +436,7 @@ export function snykAlertToRepocopVulnerability(
 		...new Set(packages.map((p) => p.dependency.package_name)),
 	].join(', ');
 
-	return {
+	const vuln = {
 		full_name: fullName,
 		open: issue.attributes.status === 'open',
 		source: 'Snyk',
@@ -489,18 +448,25 @@ export function snykAlertToRepocopVulnerability(
 		is_patchable: isPatchable,
 		cves: issue.attributes.problems.map((p) => p.id),
 	};
+
+	const ownerSlugs = findOwnerSlugs(fullName, repoOwners);
+
+	if (ownerSlugs.length === 0) {
+		return [{ ...vuln, repo_owner: 'unknown' }];
+	} else {
+		return ownerSlugs.map((slug) => ({ ...vuln, repo_owner: slug }));
+	}
 }
 
-export async function evaluateRepositories(
+export function evaluateRepositories( //TODO can be tested
 	repositories: Repository[],
 	branches: github_repository_branches[],
 	owners: view_repo_ownership[],
 	repoLanguages: github_languages[],
-	snykVulnerabilities: RepocopVulnerability[],
+	vulnerabilities: RepocopVulnerability[],
 	snykProjects: SnykProject[],
-	octokit: Octokit,
-): Promise<EvaluationResult[]> {
-	const evaluatedRepos = repositories.map(async (r) => {
+): EvaluationResult[] {
+	const evaluatedRepos = repositories.map((r) => {
 		const isMainBranchPredicate = (x: Tag) =>
 			x.key === 'branch' && (x.value === 'main' || x.value === 'master');
 
@@ -511,18 +477,11 @@ export async function evaluateRepositories(
 			.filter((x) => x !== undefined) as string[];
 
 		const uniqueReposOnSnyk = [...new Set(reposOnSnyk)];
-		const dependabotAlerts = isProduction(r)
-			? (await getAlertsForRepo(octokit, r.name))
-					?.filter((a) => a.state === 'open')
-					.map((a) => dependabotAlertToRepocopVulnerability(r.full_name, a))
-			: [];
 		const teamsForRepo = owners.filter((o) => o.full_repo_name === r.full_name);
 		const branchesForRepo = branches.filter((b) => b.repository_id === r.id);
 
-		const allAlerts = (dependabotAlerts ?? []).concat(snykVulnerabilities);
-
 		return evaluateOneRepo(
-			allAlerts,
+			vulnerabilities,
 			r,
 			branchesForRepo,
 			teamsForRepo,
@@ -530,5 +489,5 @@ export async function evaluateRepositories(
 			uniqueReposOnSnyk,
 		);
 	});
-	return Promise.all(evaluatedRepos);
+	return evaluatedRepos;
 }

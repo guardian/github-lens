@@ -4,15 +4,19 @@ import type {
 	PrismaClient,
 	view_repo_ownership,
 } from '@prisma/client';
+import type { Octokit } from 'octokit';
 import type {
+	Alert,
 	AwsCloudFormationStack,
+	DependabotVulnResponse,
 	NonEmptyArray,
+	RepocopVulnerability,
 	Repository,
 	SnykIssue,
 	SnykProject,
 	Team,
 } from './types';
-import { toNonEmptyArray } from './utils';
+import { findOwnerSlugs, toNonEmptyArray } from './utils';
 
 export async function getRepositories(
 	client: PrismaClient,
@@ -112,4 +116,87 @@ export async function getRepositoryLanguages(
 	client: PrismaClient,
 ): Promise<NonEmptyArray<github_languages>> {
 	return toNonEmptyArray(await client.github_languages.findMany({}));
+}
+
+async function getAlertsForRepo(
+	octokit: Octokit,
+	name: string,
+): Promise<Alert[] | undefined> {
+	if (name.startsWith('guardian/')) {
+		name = name.replace('guardian/', '');
+	}
+
+	try {
+		const alert: DependabotVulnResponse =
+			await octokit.rest.dependabot.listAlertsForRepo({
+				owner: 'guardian',
+				repo: name,
+				per_page: 100,
+				severity: 'critical,high',
+				state: 'open',
+				sort: 'created',
+				direction: 'asc', //retrieve oldest vulnerabilities first
+			});
+
+		const openRuntimeDependencies = alert.data.filter(
+			(a) => a.dependency.scope !== 'development',
+		);
+		return openRuntimeDependencies;
+	} catch (error) {
+		console.debug(
+			`Dependabot - ${name}: Could not get alerts. Dependabot may not be enabled.`,
+		);
+		console.debug(error);
+		return undefined;
+	}
+}
+
+function dependabotAlertToRepocopVulnerability(
+	fullName: string,
+	alert: Alert,
+	repoOwners: view_repo_ownership[],
+): RepocopVulnerability[] {
+	const CVEs = alert.security_advisory.identifiers
+		.filter((i) => i.type === 'CVE')
+		.map((i) => i.value);
+
+	const vuln = {
+		open: alert.state === 'open',
+		full_name: fullName,
+		source: 'Dependabot',
+		severity: alert.security_advisory.severity,
+		package: alert.security_vulnerability.package.name,
+		urls: alert.security_advisory.references.map((ref) => ref.url),
+		ecosystem: alert.security_vulnerability.package.ecosystem,
+		alert_issue_date: new Date(alert.created_at),
+		is_patchable: !!alert.security_vulnerability.first_patched_version,
+		cves: CVEs,
+	};
+
+	const ownerSlugs = findOwnerSlugs(fullName, repoOwners);
+
+	if (ownerSlugs.length === 0) {
+		return [{ ...vuln, repo_owner: 'unknown' }];
+	} else {
+		return ownerSlugs.map((slug) => ({ ...vuln, repo_owner: slug }));
+	}
+}
+
+export async function getDependabotVulnerabilities(
+	repos: string[],
+	repoOwners: view_repo_ownership[],
+	octokit: Octokit,
+): Promise<RepocopVulnerability[]> {
+	const alerts = await Promise.all(
+		repos.flatMap(async (r) => {
+			const alerts = (await getAlertsForRepo(octokit, r)) ?? [];
+			return alerts
+				.filter((a) => a.state === 'open')
+				.flatMap((a) =>
+					dependabotAlertToRepocopVulnerability(r, a, repoOwners),
+				);
+		}),
+	);
+
+	return alerts.flat();
 }

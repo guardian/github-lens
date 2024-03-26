@@ -4,6 +4,7 @@ import type {
 	github_repositories,
 	github_teams,
 	repocop_github_repository_rules,
+	repocop_vulnerabilities,
 } from '@prisma/client';
 
 export type NonEmptyArray<T> = [T, ...T[]];
@@ -68,7 +69,7 @@ interface Attributes {
 		score: {
 			model: string;
 			value: number;
-			updated_at: string; //or Date?
+			updated_at: Date;
 		};
 		factors: [];
 	};
@@ -83,13 +84,13 @@ interface Attributes {
 			url: string;
 			type: string;
 			source: string;
-			updated_at: string; //or Date?
-			disclosed_at: string; //or Date?
-			discovered_at: string; //or Date?
+			updated_at: Date;
+			disclosed_at: Date;
+			discovered_at: Date;
 		},
 	];
-	created_at: string; //or Date?
-	updated_at: string; //or Date?
+	created_at: Date;
+	updated_at: Date;
 	coordinates?: Coordinate[];
 	effective_severity_level: string;
 }
@@ -161,18 +162,20 @@ export interface SnykProject {
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'unknown';
 
-export type RepocopVulnerability = {
-	source: 'Dependabot' | 'Snyk';
-	full_name: string;
-	open: boolean;
-	severity: Severity;
-	package: string;
-	urls: string[];
-	ecosystem: string;
-	alert_issue_date: string;
-	is_patchable: boolean;
-	cves: string[];
-};
+// export type RepocopVulnerability = {
+// 	source: 'Dependabot' | 'Snyk';
+// 	full_name: string;
+// 	open: boolean;
+// 	severity: Severity;
+// 	package: string;
+// 	urls: string[];
+// 	ecosystem: string;
+// 	alert_issue_date: string;
+// 	is_patchable: boolean;
+// 	cves: string[];
+// };
+
+export type RepocopVulnerability = Omit<repocop_vulnerabilities, 'id'>;
 
 export interface EvaluationResult {
 	fullName: string;
