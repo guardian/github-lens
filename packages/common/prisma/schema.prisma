@@ -618,6 +618,7 @@ model snyk_issues {
   type            String?
 }
 
+<<<<<<< HEAD
 model guardian_github_actions_usage {
   evaluated_on  DateTime
   full_name     String
@@ -707,4 +708,32 @@ view view_github_actions {
   version       String?
 
   @@ignore
+}
+
+model aws_ec2_reserved_instances {
+  cq_sync_time          DateTime? @map("_cq_sync_time") @db.Timestamp(6)
+  cq_source_name        String?   @map("_cq_source_name")
+  cq_id                 String    @unique @map("_cq_id") @db.Uuid
+  cq_parent_id          String?   @map("_cq_parent_id") @db.Uuid
+  account_id            String?
+  region                String?
+  arn                   String    @id(map: "aws_ec2_reserved_instances_cqpk")
+  tags                  Json?
+  availability_zone     String?
+  currency_code         String?
+  duration              BigInt?
+  end                   DateTime? @db.Timestamp(6)
+  fixed_price           Float?
+  instance_count        BigInt?
+  instance_tenancy      String?
+  instance_type         String?
+  offering_class        String?
+  offering_type         String?
+  product_description   String?
+  recurring_charges     Json?
+  reserved_instances_id String?
+  scope                 String?
+  start                 DateTime? @db.Timestamp(6)
+  state                 String?
+  usage_price           Float?
 }

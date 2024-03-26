@@ -13,6 +13,7 @@ spec:
     - aws_organizations_organizational_units
     - aws_ec2_instances
     - aws_ec2_images
+    - aws_ec2_reserved_instances
   skip_dependent_tables: true
   spec:
     regions:
