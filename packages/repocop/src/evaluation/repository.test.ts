@@ -38,7 +38,7 @@ function evaluateRepoTestHelper(
 		owners,
 		languages,
 		reposOnSnyk,
-	).repocopRules;
+	);
 }
 
 const nullBranch: github_repository_branches = {
