@@ -51,5 +51,10 @@ module.exports = {
 			transform,
 			testMatch: ['<rootDir>/packages/snyk-integrator/**/*.test.ts'],
 		},
+		{
+			displayName: 'reservations-checker',
+			transform,
+			testMatch: ['<rootDir>/packages/reservations-checker/**/*.test.ts'],
+		},
 	],
 };

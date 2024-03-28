@@ -4,6 +4,6 @@
 	"scripts": {
 		"build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outdir=dist --external:@aws-sdk --external:@prisma/client --external:prisma",
 		"start": "APP=reservations-checker tsx src/run-locally.ts",
-		"test": "jest --detectOpenHandles --config ../../jest.config.js --selectProjects reservation-checker"
+		"test": "jest --detectOpenHandles --config ../../jest.config.js --selectProjects reservations-checker"
 	}
 }

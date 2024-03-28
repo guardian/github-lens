@@ -618,7 +618,6 @@ model snyk_issues {
   type            String?
 }
 
-<<<<<<< HEAD
 model guardian_github_actions_usage {
   evaluated_on  DateTime
   full_name     String
