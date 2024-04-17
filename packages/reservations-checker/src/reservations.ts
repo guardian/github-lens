@@ -1,7 +1,7 @@
 import type { aws_ec2_reserved_instances } from '@prisma/client';
 
 interface ReservedInstances {
-	account_id: string | null;
+	account_id: string;
 	year: number;
 	instance_type: string | null;
 	availability_zone: string | null;
@@ -41,7 +41,6 @@ export function logReservations(
 		};
 
 		});
-
 	const groupedReservations = groupEc2ReservedIntancesByAccount(mappedReservations);
 
 
