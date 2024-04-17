@@ -1,6 +1,7 @@
 import type { aws_ec2_reserved_instances } from '@prisma/client';
 
 interface ReservedInstances {
+	account_id: string | null;
 	year: number;
 	instance_type: string | null;
 	availability_zone: string | null;
@@ -8,8 +9,8 @@ interface ReservedInstances {
 }
 
 function groupEc2ReservedIntancesByAccount(
-	reservations: aws_ec2_reserved_instances[],
-): Record<string, aws_ec2_reserved_instances[]> {
+	reservations: ReservedInstances[],
+): Record<string, ReservedInstances[]> {
 	// Group reservations by account_id
 	const groupedReservations = reservations.reduce<
 		Record<string, aws_ec2_reserved_instances[]>
@@ -30,19 +31,28 @@ export function logReservations(
 	year: number,
 	reservations: aws_ec2_reserved_instances[],
 ) {
-	const groupedReservations = groupEc2ReservedIntancesByAccount(reservations);
+	
+
+	const mappedReservations: ReservedInstances[] = reservations.map((r: aws_ec2_reserved_instances) => {
+		console.log(r);
+		return  {
+			...r,
+			year: r.start?.getFullYear(),
+		};
+
+		});
+
+	const groupedReservations = groupEc2ReservedIntancesByAccount(mappedReservations);
+
+
 
 	// For each account, log the reservations
+
 	const reservationsCountPerInstance: ReservedInstances[] = [];
 	Object.entries(groupedReservations).forEach(([accountId, reservations]) => {
 		console.log(`\nReservations for ${year} for account ${accountId}:`);
 		reservations.forEach((reservation) => {
-			reservationsCountPerInstance.push({
-				year,
-				instance_type: reservation.instance_type,
-				availability_zone: reservation.availability_zone,
-				instance_count: reservation.instance_count,
-			});
+			reservationsCountPerInstance.push(reservation);
 			console.log(
 				`${Number(reservation.instance_count)} ${reservation.instance_type}, ${reservation.availability_zone}, ${reservation.start?.toLocaleString(
 					'en-GB',
