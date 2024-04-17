@@ -7,10 +7,9 @@ interface ReservedInstances {
 	instance_count: bigint | null;
 }
 
-export function logReservations(
-	year: number,
+function groupEc2ReservedIntancesByAccount(
 	reservations: aws_ec2_reserved_instances[],
-) {
+): Record<string, aws_ec2_reserved_instances[]> {
 	// Group reservations by account_id
 	const groupedReservations = reservations.reduce<
 		Record<string, aws_ec2_reserved_instances[]>
@@ -24,6 +23,14 @@ export function logReservations(
 		}
 		return groups;
 	}, {});
+	return groupedReservations;
+}
+
+export function logReservations(
+	year: number,
+	reservations: aws_ec2_reserved_instances[],
+) {
+	const groupedReservations = groupEc2ReservedIntancesByAccount(reservations);
 
 	// For each account, log the reservations
 	const reservationsCountPerInstance: ReservedInstances[] = [];
@@ -55,9 +62,25 @@ export function logReservations(
 	const currentYear = new Date().getFullYear();
 	const lastYear = currentYear - 1;
 
-	reservationsCountPerInstance.filter(elem => elem.year == currentYear).map(
-		(reservationCurrentYear) => {
+	console.log(
+		'------- Check Reservations for the current year against the last year',
+	);
+	reservationsCountPerInstance
+		.filter((elem) => elem.year == currentYear)
+		.map((reservationCurrentYear) => {
 			// check if this is in the last year
-
-	}
+			console.log(
+				`${reservationCurrentYear.instance_count} ${reservationCurrentYear.instance_type} ${reservationCurrentYear.availability_zone}`,
+			);
+			const reservationLastYear = reservationsCountPerInstance.find(
+				(reservation) =>
+					reservation.instance_type === reservationCurrentYear.instance_type &&
+					reservation.availability_zone ===
+						reservationCurrentYear.availability_zone &&
+					reservation.year === lastYear,
+			);
+			if (reservationLastYear) {
+				console.log(`Last year: ${reservationLastYear.instance_count}`);
+			}
+		});
 }
