@@ -21,14 +21,11 @@ concurrency:
   group: ${{ github.ref }}/prisma-migrate
   cancel-in-progress: true
 
-  # jobs:
-  #   checkout:
-  #    uses: org/repo/.github/workflows/build.yml@main
-  #    with:
-  #     jdk_version: 11
-
 jobs:
   build-and-push:
-    uses: guardian/service-catalogue/.github/workflows/prisma-migrate-image.yml@nt-ac/workflow
+    uses: guardian/service-catalogue/.github/workflows/release-image.yml@nt-ac/workflow
     with:
       IMAGE_NAME: prisma-migrate
+    permissions:
+      contents: read
+      packages: write
