@@ -30,6 +30,6 @@ jobs:
 
     steps:
       - name: Build and push Docker image
-        uses: release-image
+        uses: guardian/service-catalogue/.github/workflows/release-image.yml@nt-ac/workflow
         with:
           IMAGE_NAME: prisma-migrate
