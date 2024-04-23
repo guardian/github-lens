@@ -176,7 +176,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -869,7 +869,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -1515,7 +1515,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -2155,7 +2155,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -2818,7 +2818,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -3703,7 +3703,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -4174,7 +4174,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -4808,7 +4808,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -5508,7 +5508,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -6199,7 +6199,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -6888,7 +6888,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -7537,7 +7537,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -8184,7 +8184,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -8861,7 +8861,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -9712,7 +9712,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -10125,7 +10125,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -10778,7 +10778,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -10916,7 +10916,7 @@ spec:
               "",
             ],
             "Essential": false,
-            "Image": "ghcr.io/guardian/service-catalogue/singleton:sha-855e948a9669e1edb9b72a37118f7372bb3282fb",
+            "Image": "ghcr.io/guardian/service-catalogue/singleton:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -11453,7 +11453,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -12335,7 +12335,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -12985,7 +12985,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -13398,7 +13398,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -14108,7 +14108,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -14993,7 +14993,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -15439,7 +15439,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e",
+            "Image": "ghcr.io/guardian/service-catalogue/cloudquery:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {
@@ -18238,7 +18238,7 @@ spec:
               },
             ],
             "Essential": true,
-            "Image": "ghcr.io/guardian/service-catalogue/prisma-migrate:sha-cdd0348904373d72dcbbdd3bc943e6b5dc232d3c",
+            "Image": "ghcr.io/guardian/service-catalogue/prisma-migrate:stable",
             "LogConfiguration": {
               "LogDriver": "awsfirelens",
               "Options": {

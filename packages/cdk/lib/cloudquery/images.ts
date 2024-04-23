@@ -3,11 +3,11 @@ import { Versions } from './versions';
 
 export const Images = {
 	cloudquery: ContainerImage.fromRegistry(
-		`ghcr.io/guardian/service-catalogue/cloudquery:sha-0f2713edae5157260cfbf4eaa1f2d682e980fe7e`,
+		`ghcr.io/guardian/service-catalogue/cloudquery:stable`,
 	),
 	devxLogs: ContainerImage.fromRegistry('ghcr.io/guardian/devx-logs:2'),
 	singletonImage: ContainerImage.fromRegistry(
-		'ghcr.io/guardian/service-catalogue/singleton:sha-855e948a9669e1edb9b72a37118f7372bb3282fb',
+		'ghcr.io/guardian/service-catalogue/singleton:stable',
 	),
 	// https://github.com/guardian/cq-source-ns1
 	ns1Source: ContainerImage.fromRegistry(
@@ -25,7 +25,7 @@ export const Images = {
 	 * 	https://github.com/guardian/service-catalogue/pkgs/container/service-catalogue%2Fprisma-migrate
 	 */
 	prismaMigrate: ContainerImage.fromRegistry(
-		'ghcr.io/guardian/service-catalogue/prisma-migrate:sha-cdd0348904373d72dcbbdd3bc943e6b5dc232d3c',
+		'ghcr.io/guardian/service-catalogue/prisma-migrate:stable',
 	),
 	otelCollector: ContainerImage.fromRegistry(
 		'public.ecr.aws/aws-observability/aws-otel-collector:v0.35.0',
