@@ -27,8 +27,13 @@ concurrency:
 
 jobs:
   CQ_CLI:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.2
+
       - name: Set CQ_CLI
         run: |
           source .env
