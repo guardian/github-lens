@@ -46,7 +46,7 @@ jobs:
     needs: CQ_CLI
     uses: guardian/service-catalogue/.github/workflows/release-image.yml@nt/cq-stable
     with:
-      IMAGE_NAME: prisma-migrate
+      IMAGE_NAME: cloudquery
       BUILD_ARGS: CQ_CLI=${{ needs.CQ_CLI.outputs.CQ_CLI }}
     permissions:
       contents: read
