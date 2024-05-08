@@ -40,10 +40,11 @@ export function compareReservationsForTwoYears(
 		(reservation) => reservation.year === year2,
 	);
 	reservationsYear1.forEach((reservationYear1) => {
-		const reservationFound = findReservationInReservationArray(
-			reservationYear1,
-			reservationsYear2,
-		);
+		const reservationFound =
+			findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
+				reservationYear1,
+				reservationsYear2,
+			);
 		if (reservationFound) {
 			console.log(
 				`Found reservation for ${reservationYear1.instance_type} ${reservationYear1.availability_zone} in ${year2}`,
@@ -57,7 +58,7 @@ export function compareReservationsForTwoYears(
 	});
 }
 
-function compareReservations(
+export function compareReservationsByInstanceTypeAndAvailabilityZone(
 	reservation1: Reservation,
 	reservation2: Reservation,
 ) {
@@ -67,11 +68,13 @@ function compareReservations(
 	);
 }
 
-function findReservationInReservationArray(
+export function findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
 	reservation: Reservation,
 	reservations: Reservation[],
 ) {
-	return reservations.find((res) => compareReservations(reservation, res));
+	return reservations.find((res) =>
+		compareReservationsByInstanceTypeAndAvailabilityZone(reservation, res),
+	);
 }
 
 export function logReservations(year: number, reservations: Reservation[]) {
