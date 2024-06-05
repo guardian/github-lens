@@ -49,11 +49,20 @@ export function compareReservationsForTwoYears(
 			console.log(
 				`Found reservation for ${reservationYear1.instance_type} ${reservationYear1.availability_zone} in ${year2}`,
 			);
+			//TODO next: three cases: in in both years, is only in year1, now we have to find what is only in year2
 			if (reservationYear1.instance_count != reservationFound.instance_count) {
 				console.log(
 					`Different instance count for ${reservationYear1.instance_type} ${reservationYear1.availability_zone} in ${year1} and ${year2}`,
 				);
 			}
+		} else {
+			console.log(
+				'No reservation found for ',
+				reservationYear1.instance_type,
+				reservationYear1.availability_zone,
+				' in ',
+				year2,
+			);
 		}
 	});
 }
@@ -75,46 +84,4 @@ export function findReservationInReservationArrayWithSameInstanceTypeAndAvailabi
 	return reservations.find((res) =>
 		compareReservationsByInstanceTypeAndAvailabilityZone(reservation, res),
 	);
-}
-
-export function logReservations(year: number, reservations: Reservation[]) {
-	const groupedReservations = groupEc2ReservedIntancesByAccount(reservations);
-
-	// For each account, log the reservations
-
-	const reservationsCountPerInstance: Reservation[] = [];
-	Object.entries(groupedReservations).forEach(([accountId, reservations]) => {
-		console.log(`\nReservations for ${year} for account ${accountId}:`);
-		reservations.forEach((reservation) => {
-			reservationsCountPerInstance.push(reservation);
-			console.log(
-				`${Number(reservation.instance_count)} ${reservation.instance_type}, ${reservation.availability_zone}, ${reservation.year}`,
-			);
-		});
-	});
-
-	const currentYear = new Date().getFullYear();
-	const lastYear = currentYear - 1;
-
-	console.log(
-		'------- Check Reservations for the current year against the last year',
-	);
-	reservationsCountPerInstance
-		.filter((elem) => elem.year == currentYear)
-		.map((reservationCurrentYear) => {
-			// check if this is in the last year
-			console.log(
-				`${reservationCurrentYear.instance_count} ${reservationCurrentYear.instance_type} ${reservationCurrentYear.availability_zone}`,
-			);
-			const reservationLastYear = reservationsCountPerInstance.find(
-				(reservation) =>
-					reservation.instance_type === reservationCurrentYear.instance_type &&
-					reservation.availability_zone ===
-						reservationCurrentYear.availability_zone &&
-					reservation.year === lastYear,
-			);
-			if (reservationLastYear) {
-				console.log(`Last year: ${reservationLastYear.instance_count}`);
-			}
-		});
 }

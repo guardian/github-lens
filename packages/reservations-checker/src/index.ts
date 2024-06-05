@@ -17,19 +17,8 @@ export async function main() {
 	const currentYear = new Date().getFullYear();
 	const lastYear = currentYear - 1;
 
-	// Filter reservations for the current year and the last year into separate arrays
-	const reservationsCurrentYear = myEc2RerservationsResult.filter(
-		(reservation) => reservation.year === currentYear,
-	);
-	const reservationsLastYear = myEc2RerservationsResult.filter(
-		(reservation) => reservation.year === lastYear,
-	);
-
-	// logReservations(currentYear, reservationsCurrentYear);
-	// logReservations(lastYear, reservationsLastYear);
-
 	compareReservationsForTwoYears(
-		reservationsCurrentYear,
+		myEc2RerservationsResult,
 		currentYear,
 		lastYear,
 	);
