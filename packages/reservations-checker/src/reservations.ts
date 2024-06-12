@@ -8,6 +8,12 @@ export interface Reservation {
 	instance_count: bigint | null;
 }
 
+interface ReservationComparision {
+	reservationsInBothYears: Reservation[];
+	reservationsOnlyInYear1: Reservation[];
+	reservationsOnlyInYear2: Reservation[];
+}
+
 function groupEc2ReservedIntancesByAccount(
 	reservations: Reservation[],
 ): Record<string, Reservation[]> {
@@ -31,19 +37,22 @@ export function compareReservationsForTwoYears(
 	myEc2RerservationsResult: Reservation[],
 	year1: number,
 	year2: number,
-) {
+): ReservationComparision {
 	// Filter reservations for the current year and the last year into separate arrays
-	const reservationsYear1 = myEc2RerservationsResult.filter(
+	const allYear1Reservations = myEc2RerservationsResult.filter(
 		(reservation) => reservation.year === year1,
 	);
-	const reservationsYear2 = myEc2RerservationsResult.filter(
+	const allYear2Reservations = myEc2RerservationsResult.filter(
 		(reservation) => reservation.year === year2,
 	);
-	reservationsYear1.forEach((reservationYear1) => {
+	const reservationsInBothYears: Reservation[] = [];
+	const reservationsOnlyInYear1: Reservation[] = [];
+	const reservationsOnlyInYear2: Reservation[] = [];
+	allYear1Reservations.forEach((reservationYear1) => {
 		const reservationFound =
 			findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
 				reservationYear1,
-				reservationsYear2,
+				allYear2Reservations,
 			);
 		if (reservationFound) {
 			console.log(
@@ -55,6 +64,7 @@ export function compareReservationsForTwoYears(
 					`Different instance count for ${reservationYear1.instance_type} ${reservationYear1.availability_zone} in ${year1} and ${year2}`,
 				);
 			}
+			reservationsInBothYears.push(reservationYear1);
 		} else {
 			console.log(
 				'No reservation found for ',
@@ -63,8 +73,15 @@ export function compareReservationsForTwoYears(
 				' in ',
 				year2,
 			);
+			reservationsOnlyInYear1.push(reservationYear1);
 		}
 	});
+	const comparisonResult: ReservationComparision = {
+		reservationsInBothYears,
+		reservationsOnlyInYear1,
+		reservationsOnlyInYear2,
+	};
+	return comparisonResult;
 }
 
 export function compareReservationsByInstanceTypeAndAvailabilityZone(

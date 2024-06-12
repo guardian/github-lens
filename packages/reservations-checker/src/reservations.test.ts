@@ -1,37 +1,9 @@
-import type { aws_ec2_reserved_instances } from '@prisma/client';
 import type { Reservation } from './reservations';
 import {
 	compareReservationsByInstanceTypeAndAvailabilityZone,
+	compareReservationsForTwoYears,
 	findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone,
 } from './reservations';
-
-const nullReservation: aws_ec2_reserved_instances = {
-	cq_sync_time: new Date(),
-	cq_source_name: null,
-	cq_id: '',
-	cq_parent_id: null,
-	account_id: null,
-	region: null,
-	arn: '',
-	tags: '',
-	availability_zone: null,
-	currency_code: null,
-	duration: null,
-	end: null,
-	fixed_price: null,
-	instance_count: null,
-	instance_tenancy: null,
-	instance_type: null,
-	offering_class: null,
-	offering_type: '',
-	product_description: '',
-	recurring_charges: null,
-	reserved_instances_id: '',
-	scope: '',
-	start: new Date(),
-	state: '',
-	usage_price: null,
-};
 
 const reservation1: Reservation = {
 	account_id: 'account1',
@@ -65,6 +37,99 @@ const reservationArray: Reservation[] = [
 	reservation2,
 	reservation1Different,
 ];
+
+const smallEu2023: Reservation = {
+	account_id: 'account1',
+	instance_type: 'small',
+	availability_zone: 'eu',
+	instance_count: 1n,
+	year: 2023,
+};
+const smallEu2022: Reservation = {
+	account_id: 'account2',
+	instance_type: 'type2',
+	availability_zone: 'eu',
+	instance_count: 2n,
+	year: 2022,
+};
+const mediumEu2023: Reservation = {
+	account_id: 'account1',
+	instance_type: 'medium',
+	availability_zone: 'eu',
+	instance_count: 1n,
+	year: 2023,
+};
+const largeEu2022: Reservation = {
+	account_id: 'account2',
+	instance_type: 'large',
+	availability_zone: 'eu',
+	instance_count: 2n,
+	year: 2022,
+};
+const largeUS2023: Reservation = {
+	account_id: 'account1',
+	instance_type: 'large',
+	availability_zone: 'us',
+	instance_count: 1n,
+	year: 2023,
+};
+const largeAsia2022: Reservation = {
+	account_id: 'account2',
+	instance_type: 'large',
+	availability_zone: 'asia',
+	instance_count: 2n,
+	year: 2022,
+};
+
+const reservationsTestArray: Reservation[] = [
+	smallEu2023,
+	smallEu2022,
+	mediumEu2023,
+	largeEu2022,
+	largeUS2023,
+	largeAsia2022,
+];
+
+const reservationsTestArrayEqual: Reservation[] = [smallEu2023];
+
+const reservationsTestOnlyYear1: Reservation[] = [mediumEu2023, largeUS2023];
+
+const reservationsTestOnlyYear2: Reservation[] = [largeEu2022, largeAsia2022];
+
+describe('compareReservationsForTwoYears', () => {
+	it(
+		'should return arrays of reservations that have been made in both years for the same instance' +
+			' type and availability zone',
+		() => {
+			expect(
+				compareReservationsForTwoYears(reservationsTestArray, 2023, 2022)
+					.reservationsInBothYears,
+			).toBe(reservationsTestArrayEqual);
+		},
+	),
+		it(
+			'should return arrays of reservations that have been made only in year1 for both instance' +
+				' type and availability zone',
+			() => {
+				const result = compareReservationsForTwoYears(
+					reservationsTestArray,
+					2023,
+					2022,
+				);
+				expect(result.reservationsInBothYears).toBe(reservationsTestOnlyYear1);
+			},
+		),
+		it(
+			'should return arrays of reservations that have been made only in year2 for both instance' +
+				' type and availability zone',
+			() => {
+				expect(
+					compareReservationsForTwoYears(reservationsTestArray, 2023, 2022)
+						.reservationsOnlyInYear2,
+				).toBe(reservationsTestOnlyYear2);
+			},
+		);
+});
 
 describe('compareReservationsByInstanceTypeAndAvailabilityZoneReservations', () => {
 	it('should return true if the two reservations have the same instance type and availability zone', () => {
