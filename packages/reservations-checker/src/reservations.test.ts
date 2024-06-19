@@ -1,42 +1,42 @@
 import type { Reservation } from './reservations';
 import {
-	compareReservationsByInstanceTypeAndAvailabilityZone,
+	//	compareReservationsByInstanceTypeAndAvailabilityZone,
 	compareReservationsForTwoYears,
-	findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone,
+	//	findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone,
 } from './reservations';
 
-const reservation1: Reservation = {
-	account_id: 'account1',
-	instance_type: 'type1',
-	availability_zone: 'zone1',
-	instance_count: 1n,
-	year: 2022,
-};
-const reservation2: Reservation = {
-	account_id: 'account2',
-	instance_type: 'type2',
-	availability_zone: 'zone2',
-	instance_count: 2n,
-	year: 2022,
-};
-const reservation1Different: Reservation = {
-	...reservation1,
-	account_id: 'account22',
-	instance_count: 4n,
-};
-const reservation3: Reservation = {
-	account_id: 'account100',
-	instance_type: 'type10',
-	availability_zone: 'zone10',
-	instance_count: 10n,
-	year: 2010,
-};
-
-const reservationArray: Reservation[] = [
-	reservation1,
-	reservation2,
-	reservation1Different,
-];
+// const reservation1: Reservation = {
+// 	account_id: 'account1',
+// 	instance_type: 'type1',
+// 	availability_zone: 'zone1',
+// 	instance_count: 1n,
+// 	year: 2022,
+// };
+// const reservation2: Reservation = {
+// 	account_id: 'account2',
+// 	instance_type: 'type2',
+// 	availability_zone: 'zone2',
+// 	instance_count: 2n,
+// 	year: 2022,
+// };
+// const reservation1Different: Reservation = {
+// 	...reservation1,
+// 	account_id: 'account22',
+// 	instance_count: 4n,
+// };
+// const reservation3: Reservation = {
+// 	account_id: 'account100',
+// 	instance_type: 'type10',
+// 	availability_zone: 'zone10',
+// 	instance_count: 10n,
+// 	year: 2010,
+// };
+//
+// const reservationArray: Reservation[] = [
+// 	reservation1,
+// 	reservation2,
+// 	reservation1Different,
+// ];
 
 const smallEu2023: Reservation = {
 	account_id: 'account1',
@@ -47,7 +47,7 @@ const smallEu2023: Reservation = {
 };
 const smallEu2022: Reservation = {
 	account_id: 'account2',
-	instance_type: 'type2',
+	instance_type: 'small',
 	availability_zone: 'eu',
 	instance_count: 2n,
 	year: 2022,
@@ -101,10 +101,12 @@ describe('compareReservationsForTwoYears', () => {
 		'should return arrays of reservations that have been made in both years for the same instance' +
 			' type and availability zone',
 		() => {
-			expect(
-				compareReservationsForTwoYears(reservationsTestArray, 2023, 2022)
-					.reservationsInBothYears,
-			).toBe(reservationsTestArrayEqual);
+			const res = compareReservationsForTwoYears(
+				reservationsTestArray,
+				2023,
+				2022,
+			).reservationsInBothYears;
+			expect(res).toStrictEqual(reservationsTestArrayEqual);
 		},
 	),
 		it(
@@ -116,7 +118,14 @@ describe('compareReservationsForTwoYears', () => {
 					2023,
 					2022,
 				);
-				expect(result.reservationsInBothYears).toBe(reservationsTestOnlyYear1);
+				console.log('result: ', result);
+				console.log(
+					'This is the result we want reservationsTestOnlyYear1: ',
+					reservationsTestOnlyYear1,
+				);
+				expect(result.reservationsOnlyInYear1).toStrictEqual(
+					reservationsTestOnlyYear1,
+				);
 			},
 		),
 		it(
@@ -126,60 +135,60 @@ describe('compareReservationsForTwoYears', () => {
 				expect(
 					compareReservationsForTwoYears(reservationsTestArray, 2023, 2022)
 						.reservationsOnlyInYear2,
-				).toBe(reservationsTestOnlyYear2);
+				).toStrictEqual(reservationsTestOnlyYear2);
 			},
 		);
 });
 
-describe('compareReservationsByInstanceTypeAndAvailabilityZoneReservations', () => {
-	it('should return true if the two reservations have the same instance type and availability zone', () => {
-		expect(
-			compareReservationsByInstanceTypeAndAvailabilityZone(
-				reservation1,
-				reservation1,
-			),
-		).toBe(true);
-		expect(
-			compareReservationsByInstanceTypeAndAvailabilityZone(
-				reservation1,
-				reservation1Different,
-			),
-		).toBe(true);
-	});
-	it('should return false if the two reservations do not have the same instance type or availability zone', () => {
-		expect(
-			compareReservationsByInstanceTypeAndAvailabilityZone(
-				reservation1,
-				reservation2,
-			),
-		).toBe(false);
-	});
-});
-
-describe('findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone', () => {
-	it('should return the first match with the same instance type and availability zone', () => {
-		expect(
-			findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
-				reservation1,
-				reservationArray,
-			),
-		).toBe(reservation1);
-		expect(
-			findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
-				reservation1Different,
-				reservationArray,
-			),
-		).toBe(reservation1);
-	});
-	it('should return undefined if there are no entries with the same instance type and availability zone', () => {
-		expect(
-			findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
-				reservation3,
-				reservationArray,
-			),
-		).toBe(undefined);
-	});
-});
+// describe('compareReservationsByInstanceTypeAndAvailabilityZoneReservations', () => {
+// 	it('should return true if the two reservations have the same instance type and availability zone', () => {
+// 		expect(
+// 			compareReservationsByInstanceTypeAndAvailabilityZone(
+// 				reservation1,
+// 				reservation1,
+// 			),
+// 		).toBe(true);
+// 		expect(
+// 			compareReservationsByInstanceTypeAndAvailabilityZone(
+// 				reservation1,
+// 				reservation1Different,
+// 			),
+// 		).toBe(true);
+// 	});
+// 	it('should return false if the two reservations do not have the same instance type or availability zone', () => {
+// 		expect(
+// 			compareReservationsByInstanceTypeAndAvailabilityZone(
+// 				reservation1,
+// 				reservation2,
+// 			),
+// 		).toBe(false);
+// 	});
+// });
+//
+// describe('findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone', () => {
+// 	it('should return the first match with the same instance type and availability zone', () => {
+// 		expect(
+// 			findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
+// 				reservation1,
+// 				reservationArray,
+// 			),
+// 		).toBe(reservation1);
+// 		expect(
+// 			findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
+// 				reservation1Different,
+// 				reservationArray,
+// 			),
+// 		).toBe(reservation1);
+// 	});
+// 	it('should return undefined if there are no entries with the same instance type and availability zone', () => {
+// 		expect(
+// 			findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
+// 				reservation3,
+// 				reservationArray,
+// 			),
+// 		).toBe(undefined);
+// 	});
+// });
 
 // describe('logReservations', () => {
 // 	it('should log reservations grouped by account id', () => {

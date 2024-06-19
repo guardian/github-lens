@@ -1,4 +1,5 @@
 import type { aws_ec2_reserved_instances } from '@prisma/client';
+import { collectAndFormatUrgentSnykAlerts } from 'repocop/src/evaluation/repository';
 
 export interface Reservation {
 	account_id: string | null;
@@ -65,6 +66,7 @@ export function compareReservationsForTwoYears(
 				);
 			}
 			reservationsInBothYears.push(reservationYear1);
+			console.log('Reservations in both years: ', reservationsInBothYears);
 		} else {
 			console.log(
 				'No reservation found for ',
@@ -88,10 +90,17 @@ export function compareReservationsByInstanceTypeAndAvailabilityZone(
 	reservation1: Reservation,
 	reservation2: Reservation,
 ) {
-	return (
-		reservation1.instance_type === reservation2.instance_type &&
-		reservation1.availability_zone === reservation2.availability_zone
+	console.log(
+		'Compare reservation 1: ',
+		reservation1,
+		'to reservation2 :',
+		reservation2,
 	);
+	const result =
+		reservation1.instance_type === reservation2.instance_type &&
+		reservation1.availability_zone === reservation2.availability_zone;
+	console.log('Result: ', result);
+	return result;
 }
 
 export function findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
