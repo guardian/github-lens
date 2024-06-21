@@ -78,6 +78,18 @@ export function compareReservationsForTwoYears(
 			reservationsOnlyInYear1.push(reservationYear1);
 		}
 	});
+	//reservationsOnlyInYear2 are the ones that
+	//TODO: use something like this to find the reservations that are only in year2
+	//const predicate = (x: number) => x === 1;
+	// 		const [truthy, falsy] = partition(input, predicate);
+	myEc2RerservationsResult.forEach((reservation) => {
+		if (
+			!reservationsInBothYears.includes(reservation) &&
+			!reservationsOnlyInYear1.includes(reservation)
+		) {
+			reservationsOnlyInYear2.push(reservation);
+		}
+	});
 	const comparisonResult: ReservationComparision = {
 		reservationsInBothYears,
 		reservationsOnlyInYear1,
