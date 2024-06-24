@@ -49,6 +49,14 @@
       "role": "Admin",
       "addToNav": true,
       "defaultNav": false
+    },
+    {
+      "type": "page",
+      "name": "Amiable",
+      "path": "/a/%PLUGIN_ID%/amiable",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": false
     }
   ],
   "dependencies": {

@@ -7,6 +7,7 @@ export enum ROUTES {
 	WithTabs = 'page-with-tabs',
 	WithDrilldown = 'page-with-drilldown',
 	HelloWorld = 'hello-world',
+	Amiable = 'amiable',
 }
 
 export const DATASOURCE_REF = {
