@@ -1,4 +1,5 @@
 import type { aws_ec2_reserved_instances } from '@prisma/client';
+import { partition } from 'common/src/functions';
 import { collectAndFormatUrgentSnykAlerts } from 'repocop/src/evaluation/repository';
 
 export interface Reservation {
@@ -46,9 +47,8 @@ export function compareReservationsForTwoYears(
 	const allYear2Reservations = myEc2RerservationsResult.filter(
 		(reservation) => reservation.year === year2,
 	);
+
 	const reservationsInBothYears: Reservation[] = [];
-	const reservationsOnlyInYear1: Reservation[] = [];
-	const reservationsOnlyInYear2: Reservation[] = [];
 	allYear1Reservations.forEach((reservationYear1) => {
 		const reservationFound =
 			findReservationInReservationArrayWithSameInstanceTypeAndAvailabilityZone(
@@ -66,32 +66,24 @@ export function compareReservationsForTwoYears(
 				);
 			}
 			reservationsInBothYears.push(reservationYear1);
+			reservationsInBothYears.push(reservationFound);
 			console.log('Reservations in both years: ', reservationsInBothYears);
-		} else {
-			console.log(
-				'No reservation found for ',
-				reservationYear1.instance_type,
-				reservationYear1.availability_zone,
-				' in ',
-				year2,
-			);
-			reservationsOnlyInYear1.push(reservationYear1);
 		}
 	});
-	//reservationsOnlyInYear2 are the ones that
-	//TODO: use something like this to find the reservations that are only in year2
-	//const predicate = (x: number) => x === 1;
-	// 		const [truthy, falsy] = partition(input, predicate);
-	myEc2RerservationsResult.forEach((reservation) => {
-		if (
-			!reservationsInBothYears.includes(reservation) &&
-			!reservationsOnlyInYear1.includes(reservation)
-		) {
-			reservationsOnlyInYear2.push(reservation);
-		}
-	});
+
+	const allSingleYearReservations = myEc2RerservationsResult.filter(
+		(r) => !reservationsInBothYears.includes(r),
+	);
+
+	const [reservationsOnlyInYear1, reservationsOnlyInYear2] = partition(
+		allSingleYearReservations,
+		(r: Reservation) => r.year === year1,
+	);
+
 	const comparisonResult: ReservationComparision = {
-		reservationsInBothYears,
+		reservationsInBothYears: reservationsInBothYears.filter(
+			(r) => r.year === year1,
+		),
 		reservationsOnlyInYear1,
 		reservationsOnlyInYear2,
 	};
