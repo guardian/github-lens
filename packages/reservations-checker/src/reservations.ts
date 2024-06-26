@@ -16,23 +16,16 @@ interface ReservationComparision {
 	reservationsOnlyInYear2: Reservation[];
 }
 
-function groupEc2ReservedIntancesByAccount(
-	reservations: Reservation[],
-): Record<string, Reservation[]> {
-	// Group reservations by account_id
-	const groupedReservations = reservations.reduce<
-		Record<string, Reservation[]>
-	>((groups, reservation) => {
-		if (reservation.account_id) {
-			const key = reservation.account_id;
-			if (!groups[key]) {
-				groups[key] = [];
-			}
-			(groups[key] as Reservation[]).push(reservation);
-		}
-		return groups;
-	}, {});
-	return groupedReservations;
+//TODO July 2024: get reservation for seperate accounts and do the comparision
+export function getReservationsForAccount(accountId: string, year: number, prisma: PrismaClient): Promise<Reservation[]> {
+	const yearBefore = year-1;
+return prisma.aws_ec2_reserved_instances.findMany({
+		where: {
+			account_id: accountId,
+			Date(start).to
+		},
+	});
+
 }
 
 export function compareReservationsForTwoYears(
