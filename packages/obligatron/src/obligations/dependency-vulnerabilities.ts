@@ -81,7 +81,7 @@ export async function evaluateDependencyVulnerabilityObligation(
 ): Promise<ObligationResult[]> {
 	const repos = await getProductionRepos(client);
 	const vulns = (await getRepocopVulnerabilities(client)).filter(
-		(v) => daysLeftToFix(v) === 0,
+		(v) => daysLeftToFix(v.severity, v.alert_issue_date) === 0,
 	);
 
 	const resultsOrUndefined: Array<ObligationResult | undefined> = repos.map(
