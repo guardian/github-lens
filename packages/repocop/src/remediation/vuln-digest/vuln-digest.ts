@@ -36,7 +36,7 @@ function createHumanReadableVulnMessage(vuln: RepocopVulnerability): string {
 	const ecosystem =
 		vuln.ecosystem === 'maven' ? 'sbt or maven' : vuln.ecosystem;
 
-	const daysToFix = daysLeftToFix(vuln);
+	const daysToFix = daysLeftToFix(vuln.severity, vuln.alert_issue_date);
 
 	return String.raw`[${vuln.full_name}](https://github.com/${vuln.full_name}) uses [${vuln.package}](${vuln.urls[0]}), introduced via ${ecosystem}.
 There are ${daysToFix} days left to fix this vulnerability. It ${vuln.is_patchable ? 'is ' : 'might not be '}patchable.`;

@@ -7,7 +7,6 @@ import {
 	type GitHubAppConfig,
 	type GithubAppSecret,
 	type NonEmptyArray,
-	type RepocopVulnerability,
 	type Severity,
 	SLAs,
 } from 'common/src/types';
@@ -175,12 +174,15 @@ export function stringToSeverity(severity: string): Severity {
 	}
 }
 
-export function daysLeftToFix(vuln: RepocopVulnerability): number | undefined {
-	const daysToFix = SLAs[vuln.severity];
+export function daysLeftToFix(
+	severity: Severity,
+	date: Date,
+): number | undefined {
+	const daysToFix = SLAs[severity];
 	if (!daysToFix) {
 		return undefined;
 	}
-	const fixDate = new Date(vuln.alert_issue_date);
+	const fixDate = new Date(date);
 	fixDate.setDate(fixDate.getDate() + daysToFix);
 	const millisecondsInADay = 1000 * 60 * 60 * 24;
 	const daysLeftToFix = Math.ceil(
