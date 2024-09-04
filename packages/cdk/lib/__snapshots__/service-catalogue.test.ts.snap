@@ -14715,10 +14715,10 @@ spec:
     - github_repository_branches
     - github_repository_collaborators
     - github_workflows
+    - github_repository_dependabot_alerts
   skip_tables:
     - github_releases
     - github_release_assets
-    - github_repository_dependabot_alerts
     - github_repository_dependabot_secrets
   destinations:
     - postgresql
@@ -14942,7 +14942,7 @@ spec:
             "Command": [
               "/bin/sh",
               "-c",
-              "psql -c "INSERT INTO cloudquery_table_frequency VALUES ('github_repositories', 'DAILY'),('github_repository_branches', 'DAILY'),('github_repository_collaborators', 'DAILY'),('github_workflows', 'DAILY') ON CONFLICT (table_name) DO UPDATE SET frequency = 'DAILY'"",
+              "psql -c "INSERT INTO cloudquery_table_frequency VALUES ('github_repositories', 'DAILY'),('github_repository_branches', 'DAILY'),('github_repository_collaborators', 'DAILY'),('github_workflows', 'DAILY'),('github_repository_dependabot_alerts', 'DAILY') ON CONFLICT (table_name) DO UPDATE SET frequency = 'DAILY'"",
             ],
             "DockerLabels": {
               "App": "service-catalogue",

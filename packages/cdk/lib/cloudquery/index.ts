@@ -384,6 +384,7 @@ export function addCloudqueryEcsCluster(
 					'github_repository_branches',
 					'github_repository_collaborators',
 					'github_workflows',
+					'github_repository_dependabot_alerts',
 				],
 
 				// We're not (yet) interested in the following tables, so do not collect them to reduce API quota usage.
@@ -391,7 +392,6 @@ export function addCloudqueryEcsCluster(
 				skipTables: [
 					'github_releases',
 					'github_release_assets',
-					'github_repository_dependabot_alerts',
 					'github_repository_dependabot_secrets',
 				],
 			}),
