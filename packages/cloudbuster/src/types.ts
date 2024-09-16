@@ -4,6 +4,7 @@ import type { Severity } from 'common/src/types';
 export interface Finding {
 	awsAccountId: string;
 	awsAccountName: string | null;
+	controlId: string | null;
 	title: string;
 	resources: string[];
 	remediationUrl: string | null;

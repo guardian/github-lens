@@ -11,6 +11,7 @@ export function transformFinding(finding: aws_securityhub_findings): Finding {
 	let priority = null;
 	let remediationUrl = null;
 	let resources = null;
+	let controlId = null;
 
 	if (
 		finding.severity &&
@@ -20,6 +21,14 @@ export function transformFinding(finding: aws_securityhub_findings): Finding {
 	) {
 		severity = stringToSeverity(finding.severity['Label'] as string);
 		priority = finding.severity['Normalized'] as number;
+	}
+
+	if (
+		finding.product_fields &&
+		typeof finding.product_fields === 'object' &&
+		'ControlId' in finding.product_fields
+	) {
+		controlId = finding.product_fields['ControlId'] as string;
 	}
 
 	if (finding.remediation && typeof finding.remediation === 'object') {
@@ -52,6 +61,7 @@ export function transformFinding(finding: aws_securityhub_findings): Finding {
 	return {
 		awsAccountId: finding.aws_account_id,
 		awsAccountName: finding.aws_account_name,
+		controlId,
 		title: finding.title,
 		resources: resources as string[],
 		severity,

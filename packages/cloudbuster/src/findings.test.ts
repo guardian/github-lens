@@ -5,6 +5,7 @@ function mockFinding(awsAccountId: string, title: string): Finding {
 	return {
 		awsAccountId,
 		title,
+		controlId: 'A.1',
 		awsAccountName: 'mock-account',
 		resources: ['arn::mock::123'],
 		remediationUrl: 'https://mock.url/mock',
