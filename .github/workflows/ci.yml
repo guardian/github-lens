@@ -20,7 +20,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  install:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+      - name: Setup Node
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - uses: guardian/actions-read-private-repos@8792b5279dc2e6dfb6b9aa6ba2f26b6226be444c # v0.1.1
+        with:
+          private-ssh-keys: ${{ secrets.PRIVATE_INFRASTRUCTURE_CONFIG_DEPLOY_KEY }}
+      - name: Run script
+        shell: bash
+        run: npm ci
+
   lint:
+    needs: [install]
     timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
@@ -33,6 +53,7 @@ jobs:
           deployment_key: ${{ secrets.PRIVATE_INFRASTRUCTURE_CONFIG_DEPLOY_KEY }}
 
   test:
+    needs: [install]
     timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
@@ -45,6 +66,7 @@ jobs:
           deployment_key: ${{ secrets.PRIVATE_INFRASTRUCTURE_CONFIG_DEPLOY_KEY }}
 
   typecheck:
+    needs: [install]
     timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
@@ -119,6 +141,7 @@ jobs:
       NODE_OPTIONS: '--max_old_space_size=4096'
 
   db-migration:
+    needs: [install]
     timeout-minutes: 15
     runs-on: ubuntu-latest
 
@@ -162,7 +185,7 @@ jobs:
           private-ssh-keys: ${{ secrets.PRIVATE_INFRASTRUCTURE_CONFIG_DEPLOY_KEY }}
 
       - name: install dependencies
-        run: npm ci
+        run: npm i
 
       - name: perform a DEV database migration
         run: npm -w cli start migrate -- --stage DEV

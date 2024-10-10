@@ -25,7 +25,7 @@ runs:
 
     - name: install dependencies
       shell: bash
-      run: npm ci
+      run: npm i
 
     - name: Run script
       shell: bash
