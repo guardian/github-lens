@@ -46,9 +46,10 @@ jobs:
           path: ~/.npm
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
 
-      - name: Run script
+      - if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+        name: Run script
         shell: bash
-        run: npm i
+        run: npm ci
 
   lint:
     needs: [install]

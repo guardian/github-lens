@@ -54,7 +54,7 @@ verify() {
   fi
 }
 
-npm ci
+# npm ci
 npm run build
 
 verify best-practices "packages/best-practices/best-practices.md"
