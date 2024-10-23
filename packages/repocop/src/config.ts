@@ -39,9 +39,9 @@ export interface Config extends PrismaConfig {
 	ignoredRepositoryPrefixes: string[];
 
 	/**
-	 * Flag to enable messaging when running locally.
+	 * Flag to send digests to teams.
 	 */
-	enableMessaging: boolean;
+	sendDigest: boolean;
 
 	/**
 	 * The number of repositories to send to the interactive monitor for evaluation.
@@ -92,7 +92,7 @@ export async function getConfig(): Promise<Config> {
 		interactiveMonitorSnsTopic: getEnvOrThrow('INTERACTIVE_MONITOR_TOPIC_ARN'),
 		databaseConnectionString: getDatabaseConnectionString(databaseConfig),
 		withQueryLogging: queryLogging,
-		enableMessaging: process.env.ENABLE_MESSAGING === 'false' ? false : true,
+		sendDigest: process.env.SEND_DIGEST === 'false' ? false : true,
 		ignoredRepositoryPrefixes: [
 			'guardian/esd-', // ESD team
 			'guardian/pluto-', // Multimedia team

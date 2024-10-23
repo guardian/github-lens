@@ -166,38 +166,36 @@ export async function main() {
 		await sendUnprotectedRepo(repocopRules, config, repoLanguages);
 	}
 
+	await sendPotentialInteractives(repocopRules, config);
+
+	if (config.branchProtectionEnabled) {
+		await protectBranches(
+			repocopRules,
+			repoOwners,
+			config,
+			unarchivedRepos,
+			octokit,
+		);
+	}
+
+	await applyProductionTopicAndMessageTeams(
+		unarchivedRepos,
+		nonPlaygroundStacks,
+		repoOwners,
+		octokit,
+		config,
+	);
+
 	await writeEvaluationTable(repocopRules, prisma);
-	if (config.enableMessaging) {
-		await sendPotentialInteractives(repocopRules, config);
-
-		if (config.branchProtectionEnabled) {
-			await protectBranches(
-				repocopRules,
-				repoOwners,
-				config,
-				unarchivedRepos,
-				octokit,
-			);
-		}
-
+	if (config.sendDigest) {
 		await createAndSendVulnerabilityDigests(
 			config,
 			teams,
 			repoOwners,
 			evaluationResults,
 		);
-
-		await applyProductionTopicAndMessageTeams(
-			unarchivedRepos,
-			nonPlaygroundStacks,
-			repoOwners,
-			octokit,
-			config,
-		);
 	} else {
-		console.log(
-			'Messaging is not enabled. Set ENABLE_MESSAGING flag to enable.',
-		);
+		console.log('Digests are not enabled. Set SEND_DIGEST flag to enable.');
 	}
 
 	await sendOneRepoToDepGraphIntegrator(

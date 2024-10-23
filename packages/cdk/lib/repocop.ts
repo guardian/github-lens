@@ -67,6 +67,7 @@ export class Repocop {
 				DEPENDENCY_GRAPH_INPUT_TOPIC_ARN:
 					dependencyGraphIntegratorInputTopic.topicArn,
 				GITHUB_ORG: gitHubOrg,
+				SEND_DIGEST: guStack.stage === 'PROD' ? 'true' : 'false', //using ternary as this is required to be a string
 			},
 			vpc,
 			securityGroups: [dbSecurityGroup],
