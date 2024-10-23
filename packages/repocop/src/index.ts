@@ -113,7 +113,6 @@ export async function main() {
 		productionWorkflowUsages,
 	);
 
-	const repocopRules = evaluationResults.map((r) => r.repocopRules);
 	const severityPredicate = (x: RepocopVulnerability) => x.severity === 'high';
 	const [high, critical] = partition(
 		evaluationResults.flatMap((r) => r.vulnerabilities),
@@ -151,6 +150,10 @@ export async function main() {
 
 	await writeVulnerabilitiesTable(vulnerabilities, prisma);
 
+	const repocopRules = evaluationResults.map((r) => r.repocopRules);
+
+	await writeEvaluationTable(repocopRules, prisma);
+
 	const awsConfig = awsClientConfig(config.stage);
 	const cloudwatch = new CloudWatchClient(awsConfig);
 	await sendToCloudwatch(repocopRules, cloudwatch, config);
@@ -161,6 +164,12 @@ export async function main() {
 		archivedRepos,
 		nonPlaygroundStacks,
 	);
+
+	/*
+	 * STAGE AWARE FUNCTIONS - these will only make live changes or
+	 * message actual teams if STAGE=PROD, or send messages to
+	 * downstream lambdas that are also stage aware
+	 */
 
 	if (config.snykIntegrationPREnabled) {
 		await sendUnprotectedRepo(repocopRules, config, repoLanguages);
@@ -186,7 +195,14 @@ export async function main() {
 		config,
 	);
 
-	await writeEvaluationTable(repocopRules, prisma);
+	await sendOneRepoToDepGraphIntegrator(
+		config,
+		repoLanguages,
+		productionRepos,
+		productionWorkflowUsages,
+		repoOwners,
+	);
+
 	if (config.sendDigest) {
 		await createAndSendVulnerabilityDigests(
 			config,
@@ -198,13 +214,7 @@ export async function main() {
 		console.log('Digests are not enabled. Set SEND_DIGEST flag to enable.');
 	}
 
-	await sendOneRepoToDepGraphIntegrator(
-		config,
-		repoLanguages,
-		productionRepos,
-		productionWorkflowUsages,
-		repoOwners,
-	);
+	/* END OF STAGE AWARE FUNCTIONS */
 
 	console.log('Done');
 }
