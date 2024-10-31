@@ -387,6 +387,7 @@ export function addCloudqueryEcsCluster(
 					'github_repository_branches',
 					'github_repository_collaborators',
 					'github_workflows',
+					'github_repository_custom_properties',
 				],
 
 				// We're not (yet) interested in the following tables, so do not collect them to reduce API quota usage.
