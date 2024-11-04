@@ -97,7 +97,12 @@ export interface Repository extends RepositoryFields {
 	id: NonNullable<RepositoryFields['id']>;
 }
 
-export interface RepositoryWithDepGraphLanguage extends Repository {
+export interface AugmentedRepository extends Repository {
+	github_team_slugs: string[];
+	languages: string[];
+	workflow_usages: string[];
+}
+export interface RepositoryWithDepGraphLanguage extends AugmentedRepository {
 	dependency_graph_language: DepGraphLanguage;
 }
 

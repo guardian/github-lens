@@ -13,6 +13,7 @@ import {
 } from 'common/src/functions';
 import { SLAs } from 'common/src/types';
 import type {
+	AugmentedRepository,
 	DepGraphLanguage,
 	RepocopVulnerability,
 	Repository,
@@ -132,18 +133,18 @@ function isMaintained(repo: Repository): boolean {
 }
 
 function isSupportedBySnyk(
-	repo: Repository,
-	languages: string[],
+	augmentedRepository: AugmentedRepository,
 	reposOnSnyk: string[],
 ): boolean {
-	const repoIsOnSnyk = reposOnSnyk.includes(repo.full_name);
-	const containsOnlySnykSupportedLanguages = languages.every((language) =>
-		supportedSnykLanguages.includes(language),
-	);
+	const repoIsOnSnyk = reposOnSnyk.includes(augmentedRepository.full_name);
+	const containsOnlySnykSupportedLanguages =
+		augmentedRepository.languages.every((language) =>
+			supportedSnykLanguages.includes(language),
+		);
 	if (repoIsOnSnyk && !containsOnlySnykSupportedLanguages) {
 		console.log(
-			`${repo.name} is on Snyk, but contains the following languages not supported by Snyk: `,
-			languages.filter(
+			`${augmentedRepository.name} is on Snyk, but contains the following languages not supported by Snyk: `,
+			augmentedRepository.languages.filter(
 				(language) => !supportedSnykLanguages.includes(language),
 			),
 		);
@@ -152,10 +153,8 @@ function isSupportedBySnyk(
 }
 
 function containsSupportedDepGraphLanguagesWithWorkflows(
-	repo: Repository,
-	workflowsForRepo: guardian_github_actions_usage[],
+	augmentedRepository: AugmentedRepository,
 	languagesNotNativelySupported: string[],
-	languages: string[],
 ): boolean {
 	const remainingLanguagesSupportedByDepGraphIntegrator: string[] =
 		languagesNotNativelySupported.filter((language) =>
@@ -172,14 +171,13 @@ function containsSupportedDepGraphLanguagesWithWorkflows(
 		remainingLanguagesSupportedByDepGraphIntegrator.every((language) => {
 			const repoHasWorkflowForLanguage =
 				doesRepoHaveDepSubmissionWorkflowForLanguage(
-					repo,
-					workflowsForRepo,
+					augmentedRepository,
 					language as DepGraphLanguage,
 				);
 
 			if (!repoHasWorkflowForLanguage) {
 				console.log(
-					`${repo.name} contains ${language} which is supported by Dependency Graph Integrator for Dependabot, but it doesn't have a dependency submission workflow`,
+					`${augmentedRepository.name} contains ${language} which is supported by Dependency Graph Integrator for Dependabot, but it doesn't have a dependency submission workflow`,
 				);
 			}
 
@@ -188,8 +186,8 @@ function containsSupportedDepGraphLanguagesWithWorkflows(
 
 	if (!allRemainingLanguagesSupportedByDepGraphIntegrator) {
 		console.log(
-			`${repo.name} contains the following languages not supported by Dependabot or Dependency Graph Integrator`,
-			languages.filter(
+			`${augmentedRepository.name} contains the following languages not supported by Dependabot or Dependency Graph Integrator`,
+			augmentedRepository.languages.filter(
 				(language) =>
 					!depGraphIntegratorSupportedLanguages.includes(language) &&
 					!supportedDependabotLanguages.includes(language),
@@ -203,25 +201,22 @@ function containsSupportedDepGraphLanguagesWithWorkflows(
 }
 
 function isSupportedByDependabot(
-	repo: Repository,
-	languages: string[],
-	workflowsForRepo: guardian_github_actions_usage[],
+	augmentedRepository: AugmentedRepository,
 ): boolean {
-	const languagesNotNativelySupported = languages.filter(
+	const languagesNotNativelySupported = augmentedRepository.languages.filter(
 		(language) => !supportedDependabotLanguages.includes(language),
 	);
 
 	const containsOnlyNativeOrDepSubmissionWorkflowSupportedLanguages =
 		containsSupportedDepGraphLanguagesWithWorkflows(
-			repo,
-			workflowsForRepo,
+			augmentedRepository,
 			languagesNotNativelySupported,
-			languages,
 		);
 
-	const containsOnlyDependabotSupportedLanguages = languages.every((language) =>
-		supportedDependabotLanguages.includes(language),
-	);
+	const containsOnlyDependabotSupportedLanguages =
+		augmentedRepository.languages.every((language) =>
+			supportedDependabotLanguages.includes(language),
+		);
 
 	return (
 		containsOnlyDependabotSupportedLanguages ||
@@ -234,22 +229,19 @@ function isSupportedByDependabot(
  *   > Repositories should have their dependencies tracked via Snyk or Dependabot, depending on the languages present.
  */
 export function hasDependencyTracking(
-	repo: Repository,
-	repoLanguages: github_languages[],
+	augmentedRepository: AugmentedRepository,
 	reposOnSnyk: string[],
-	workflowsForRepo: guardian_github_actions_usage[],
 ): boolean {
-	if (!repo.topics.includes('production') || repo.archived) {
+	if (
+		!augmentedRepository.topics.includes('production') ||
+		augmentedRepository.archived
+	) {
 		return true;
 	}
-	const languages: string[] =
-		repoLanguages.find(
-			(repoLanguage) => repoLanguage.full_name === repo.full_name,
-		)?.languages ?? [];
 
 	return (
-		isSupportedBySnyk(repo, languages, reposOnSnyk) ||
-		isSupportedByDependabot(repo, languages, workflowsForRepo)
+		isSupportedBySnyk(augmentedRepository, reposOnSnyk) ||
+		isSupportedByDependabot(augmentedRepository)
 	);
 }
 
@@ -314,9 +306,9 @@ export function vulnerabilityExceedsSla(date: Date, severity: Severity) {
 
 export function hasOldAlerts(
 	alerts: RepocopVulnerability[],
-	repo: Repository,
+	augmentedRepository: AugmentedRepository,
 ): boolean {
-	if (!isProduction(repo)) {
+	if (!isProduction(augmentedRepository)) {
 		return false;
 	}
 	const oldAlerts = alerts.filter((a) =>
@@ -325,7 +317,7 @@ export function hasOldAlerts(
 
 	if (oldAlerts.length > 0) {
 		console.log(
-			`${repo.name}: has ${oldAlerts.length} alerts that need addressing`,
+			`${augmentedRepository.name}: has ${oldAlerts.length} alerts that need addressing`,
 		);
 		console.debug(oldAlerts);
 	}
@@ -437,17 +429,14 @@ export function deduplicateVulnerabilitiesByCve(
  */
 export function evaluateOneRepo(
 	dependabotAlertsForRepo: RepocopVulnerability[] | undefined,
-	repo: Repository,
+	augmentedRepository: AugmentedRepository,
 	allBranches: github_repository_branches[],
-	teams: view_repo_ownership[],
-	repoLanguages: github_languages[],
 	latestSnykIssues: SnykIssue[],
 	snykProjects: SnykProject[],
 	reposOnSnyk: string[],
-	workflowsForRepo: guardian_github_actions_usage[],
 ): EvaluationResult {
 	const snykAlertsForRepo = collectAndFormatUrgentSnykAlerts(
-		repo,
+		augmentedRepository,
 		latestSnykIssues,
 		snykProjects,
 	);
@@ -455,7 +444,7 @@ export function evaluateOneRepo(
 	const vulnerabilities = snykAlertsForRepo.concat(
 		dependabotAlertsForRepo ?? [],
 	);
-	hasOldAlerts(vulnerabilities, repo);
+	hasOldAlerts(vulnerabilities, augmentedRepository);
 
 	const repocopRules: repocop_github_repository_rules = {
 		full_name: repo.full_name,
@@ -627,4 +616,35 @@ export function evaluateRepositories(
 		);
 	});
 	return Promise.all(evaluatedRepos);
+}
+
+export function augmentRepositories(
+	repositories: Repository[],
+	owners: view_repo_ownership[],
+	repoLanguages: github_languages[],
+	productionWorkflowUsages: guardian_github_actions_usage[],
+): AugmentedRepository[] {
+	const augmentdRepos = repositories.map((repository) => {
+		const workflowsForRepo = productionWorkflowUsages
+			.filter((workflows) => workflows.full_name === repository.full_name)
+			.flatMap((workflow) => workflow.workflow_uses);
+
+		const languagesForRepo: string[] =
+			repoLanguages.find(
+				(repoLanguage) => repoLanguage.full_name === repository.full_name,
+			)?.languages ?? [];
+
+		const githubTeamSlugsForRepo: string[] = owners
+			.filter((owner) => repository.full_name === owner.full_repo_name)
+			.map((owner) => owner.github_team_slug);
+
+		const augmentdRepo: AugmentedRepository = {
+			...repository,
+			github_team_slugs: githubTeamSlugsForRepo,
+			languages: languagesForRepo,
+			workflow_usages: workflowsForRepo,
+		};
+		return augmentdRepo;
+	});
+	return augmentdRepos;
 }

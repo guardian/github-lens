@@ -12,6 +12,7 @@ import type { RepocopVulnerability } from 'common/src/types';
 import type { Config } from './config';
 import { getConfig } from './config';
 import {
+	augmentRepositories,
 	evaluateRepositories,
 	testExperimentalRepocopFeatures,
 } from './evaluation/repository';
@@ -112,6 +113,13 @@ export async function main() {
 		productionWorkflowUsages,
 	);
 
+	const augmentedRepositories = augmentRepositories(
+		productionRepos,
+		repoOwners,
+		repoLanguages,
+		productionWorkflowUsages,
+	);
+
 	const repocopRules = evaluationResults.map((r) => r.repocopRules);
 	const severityPredicate = (x: RepocopVulnerability) => x.severity === 'high';
 	const [high, critical] = partition(
@@ -167,10 +175,7 @@ export async function main() {
 
 	await sendReposToDependencyGraphIntegrator(
 		config,
-		repoLanguages,
-		productionRepos,
-		productionWorkflowUsages,
-		repoOwners,
+		augmentedRepositories,
 		dependencyGraphIntegratorRepoCount,
 	);
 
