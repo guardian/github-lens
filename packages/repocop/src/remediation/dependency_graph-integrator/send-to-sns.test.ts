@@ -13,7 +13,7 @@ import {
 	checkRepoForLanguage,
 	createSnsEventsForDependencyGraphIntegration,
 	doesRepoHaveDepSubmissionWorkflowForLanguage,
-	getReposWithoutWorkflows,
+	getReposWithoutDepSubmissionWorkflows,
 } from './send-to-sns';
 
 const fullName = 'guardian/repo-name';
@@ -138,7 +138,7 @@ describe('When checking a repo for an existing dependency submission workflow', 
 
 describe('When getting suitable events to send to SNS', () => {
 	test('return the repo when a Scala repo is found without an existing workflow', () => {
-		const result = getReposWithoutWorkflows(
+		const result = getReposWithoutDepSubmissionWorkflows(
 			[repoWithTargetLanguage(fullName)],
 			[repository(fullName)],
 			[repoWithoutWorkflow(fullName)],
@@ -148,7 +148,7 @@ describe('When getting suitable events to send to SNS', () => {
 		expect(result).toEqual(expected);
 	});
 	test('return empty repo array when a Scala repo is found with an existing workflow', () => {
-		const result = getReposWithoutWorkflows(
+		const result = getReposWithoutDepSubmissionWorkflows(
 			[repoWithTargetLanguage(fullName)],
 			[repository(fullName)],
 			[repoWithDepSubmissionWorkflow(fullName)],
@@ -156,7 +156,7 @@ describe('When getting suitable events to send to SNS', () => {
 		expect(result).toEqual([]);
 	});
 	test('return empty array when non-Scala repo is found with without an existing workflow', () => {
-		const result = getReposWithoutWorkflows(
+		const result = getReposWithoutDepSubmissionWorkflows(
 			[repoWithoutTargetLanguage(fullName)],
 			[repository(fullName)],
 			[repoWithoutWorkflow(fullName)],
@@ -164,7 +164,7 @@ describe('When getting suitable events to send to SNS', () => {
 		expect(result).toEqual([]);
 	});
 	test('return 2 events when 2 Scala repos are found without an existing workflow', () => {
-		const result = getReposWithoutWorkflows(
+		const result = getReposWithoutDepSubmissionWorkflows(
 			[repoWithTargetLanguage(fullName), repoWithTargetLanguage(fullName2)],
 			[repository(fullName), repository(fullName2)],
 			[repoWithoutWorkflow(fullName), repoWithoutWorkflow(fullName2)],

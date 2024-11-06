@@ -40,8 +40,8 @@ import { isProduction, vulnSortPredicate } from '../utils';
  * Evaluate the following rule for a Github repository:
  *   > The default branch name should be "main".
  */
-function hasDefaultBranchNameMain(repo: Repository): boolean {
-	return repo.default_branch === 'main';
+function hasDefaultBranchNameMain(augmentedRepo: AugmentedRepository): boolean {
+	return augmentedRepo.default_branch === 'main';
 }
 
 /**
@@ -49,16 +49,18 @@ function hasDefaultBranchNameMain(repo: Repository): boolean {
  *   > Enable branch protection for the default branch, ensuring changes are reviewed before being deployed.
  */
 function hasBranchProtection(
-	repo: Repository,
+	augmentedRepo: AugmentedRepository,
 	branches: github_repository_branches[],
 ): boolean {
 	const exempt = !(
-		repo.topics.includes('production') || repo.topics.includes('documentation')
+		augmentedRepo.topics.includes('production') ||
+		augmentedRepo.topics.includes('documentation')
 	);
 
 	const branch = branches.find(
 		(branch) =>
-			branch.repository_id === repo.id && branch.name === repo.default_branch,
+			branch.repository_id === augmentedRepo.id &&
+			branch.name === augmentedRepo.default_branch,
 	);
 	if (exempt || branch === undefined) {
 		return true;
@@ -72,18 +74,15 @@ function hasBranchProtection(
  *   > Grant at least one GitHub team Admin access - typically, the dev team that own the project.
  *   > Repositories without one of the following topics are exempt: production, testing, documentation.
  */
-function hasAdminTeam(repo: Repository, teams: view_repo_ownership[]): boolean {
+function hasAdminTeam(augmentedRepo: AugmentedRepository): boolean {
 	// Repos that have explicitly been classified as these topics are exempt.
-	// Any other repos, regardless of topic, need to be owned by a team, or assigned one of these topics.
+	// Any other repos, regardless of topic, need to be assigned one of these topics.
 	const exemptedTopics = ['prototype', 'learning', 'hackday', 'interactive'];
 	const isExempt =
-		repo.topics.filter((topic) => exemptedTopics.includes(topic)).length > 0;
+		augmentedRepo.topics.filter((topic) => exemptedTopics.includes(topic))
+			.length > 0;
 
-	const adminTeams = teams.filter(
-		({ full_repo_name, role_name }) =>
-			full_repo_name === repo.full_name && role_name === 'admin',
-	);
-	const hasAdminTeam = adminTeams.length > 0;
+	const hasAdminTeam = augmentedRepo.gh_admin_team_slugs.length > 0;
 
 	return isExempt || hasAdminTeam;
 }
@@ -92,7 +91,7 @@ function hasAdminTeam(repo: Repository, teams: view_repo_ownership[]): boolean {
  *   > Repositories should have one and only one of the following topics to help understand what is in production.
  *   > Repositories owned only by non-P&E teams are exempt.
  */
-function hasStatusTopic(repo: Repository): boolean {
+function hasStatusTopic(augmentedRepo: AugmentedRepository): boolean {
 	const validTopics = [
 		'prototype',
 		'learning',
@@ -104,30 +103,33 @@ function hasStatusTopic(repo: Repository): boolean {
 	];
 
 	return (
-		repo.topics.filter((topic) => validTopics.includes(topic)).length === 1
+		augmentedRepo.topics.filter((topic) => validTopics.includes(topic))
+			.length === 1
 	);
 }
 
-function mostRecentChange(repo: Repository): Date | undefined {
+function mostRecentChange(
+	augmentedRepo: AugmentedRepository,
+): Date | undefined {
 	const definiteDates: Date[] = [
-		repo.created_at,
-		repo.updated_at,
-		repo.pushed_at,
+		augmentedRepo.created_at,
+		augmentedRepo.updated_at,
+		augmentedRepo.pushed_at,
 	].filter((d): d is Date => !!d);
 
 	const sortedDates = definiteDates.sort((a, b) => b.getTime() - a.getTime());
 	return sortedDates[0] ?? undefined;
 }
 
-function isMaintained(repo: Repository): boolean {
-	const update: Date | undefined = mostRecentChange(repo);
+function isMaintained(augmentedRepo: AugmentedRepository): boolean {
+	const update: Date | undefined = mostRecentChange(augmentedRepo);
 	const now = new Date();
 	const twoYearsAgo = new Date();
 	twoYearsAgo.setFullYear(now.getFullYear() - 2);
 	//avoid false positives and use current moment if no dates are available for now
 	//a repo always has a created_at date, so this is unlikely to happen unless something is wrong with cloudquery
 	const recentlyUpdated = (update ?? new Date()) > twoYearsAgo;
-	const isInteractive = repo.topics.includes('interactive');
+	const isInteractive = augmentedRepo.topics.includes('interactive');
 
 	return isInteractive || recentlyUpdated;
 }
@@ -250,7 +252,7 @@ export function hasDependencyTracking(
  *   > Archived repositories should not have corresponding stacks on AWS.
  */
 export function findStacks(
-	repo: Repository,
+	repo: AugmentedRepository,
 	stacks: AwsCloudFormationStack[],
 ): RepoAndStack {
 	const stackMatches = stacks.filter((stack) => {
@@ -271,8 +273,8 @@ export function findStacks(
 }
 
 function findArchivedReposWithStacks(
-	archivedRepositories: Repository[],
-	unarchivedRepositories: Repository[],
+	archivedRepositories: AugmentedRepository[],
+	unarchivedRepositories: AugmentedRepository[],
 	stacks: AwsCloudFormationStack[],
 ) {
 	const archivedRepos = archivedRepositories;
@@ -335,18 +337,18 @@ function getIssuesForProject(
 }
 
 export function collectAndFormatUrgentSnykAlerts(
-	repo: Repository,
+	augmentedRepo: AugmentedRepository,
 	snykIssues: SnykIssue[],
 	snykProjects: SnykProject[],
 ): RepocopVulnerability[] {
-	if (!isProduction(repo)) {
+	if (!isProduction(augmentedRepo)) {
 		return [];
 	}
 
 	const snykProjectIdsForRepo = snykProjects
 		.filter((project) => {
 			const tagValues = project.attributes.tags.map((tag) => tag.value);
-			return tagValues.includes(repo.full_name);
+			return tagValues.includes(augmentedRepo.full_name);
 		})
 		.map((project) => project.id);
 
@@ -355,7 +357,7 @@ export function collectAndFormatUrgentSnykAlerts(
 	);
 
 	const processedVulns = snykIssuesForRepo.map((v) =>
-		snykAlertToRepocopVulnerability(repo.full_name, v, snykProjects),
+		snykAlertToRepocopVulnerability(augmentedRepo.full_name, v, snykProjects),
 	);
 
 	const relevantVulns = processedVulns.filter(
@@ -368,8 +370,8 @@ export function collectAndFormatUrgentSnykAlerts(
 
 export function testExperimentalRepocopFeatures(
 	evaluationResults: EvaluationResult[],
-	unarchivedRepos: Repository[],
-	archivedRepos: Repository[],
+	unarchivedRepos: AugmentedRepository[],
+	archivedRepos: AugmentedRepository[],
 	nonPlaygroundStacks: AwsCloudFormationStack[],
 ) {
 	const evaluatedRepos = evaluationResults.map((r) => r.repocopRules);
@@ -425,7 +427,7 @@ export function deduplicateVulnerabilitiesByCve(
 }
 
 /**
- * Apply rules to a repository as defined in https://github.com/guardian/recommendations/blob/main/best-practices.md.
+ * Apply rules to a repository as defined in https://github.com/guardian/service-catalogue/blob/main/packages/best-practices/best-practices.md
  */
 export function evaluateOneRepo(
 	dependabotAlertsForRepo: RepocopVulnerability[] | undefined,
@@ -447,25 +449,23 @@ export function evaluateOneRepo(
 	hasOldAlerts(vulnerabilities, augmentedRepository);
 
 	const repocopRules: repocop_github_repository_rules = {
-		full_name: repo.full_name,
-		default_branch_name: hasDefaultBranchNameMain(repo),
-		branch_protection: hasBranchProtection(repo, allBranches),
+		full_name: augmentedRepository.full_name,
+		default_branch_name: hasDefaultBranchNameMain(augmentedRepository),
+		branch_protection: hasBranchProtection(augmentedRepository, allBranches),
 		team_based_access: false,
-		admin_access: hasAdminTeam(repo, teams),
-		archiving: isMaintained(repo),
-		topics: hasStatusTopic(repo),
+		admin_access: hasAdminTeam(augmentedRepository),
+		archiving: isMaintained(augmentedRepository),
+		topics: hasStatusTopic(augmentedRepository),
 		contents: null,
 		vulnerability_tracking: hasDependencyTracking(
-			repo,
-			repoLanguages,
+			augmentedRepository,
 			reposOnSnyk,
-			workflowsForRepo,
 		),
 		evaluated_on: new Date(),
 	};
 
 	return {
-		fullName: repo.full_name,
+		fullName: augmentedRepository.full_name,
 		repocopRules,
 		vulnerabilities: deduplicateVulnerabilitiesByCve(vulnerabilities),
 	};
@@ -573,46 +573,36 @@ export function snykAlertToRepocopVulnerability(
 }
 
 export function evaluateRepositories(
-	repositories: Repository[],
+	augmentedRepositories: AugmentedRepository[],
 	branches: github_repository_branches[],
-	owners: view_repo_ownership[],
-	repoLanguages: github_languages[],
 	snykIssues: SnykIssue[],
 	snykProjects: SnykProject[],
 	dependabotVulnerabilities: RepocopVulnerability[],
-	productionWorkflowUsages: guardian_github_actions_usage[],
 ): Promise<EvaluationResult[]> {
-	const evaluatedRepos = repositories.map((r) => {
+	const evaluatedRepos = augmentedRepositories.map((repo) => {
 		const isMainBranchPredicate = (x: Tag) =>
 			x.key === 'branch' && (x.value === 'main' || x.value === 'master');
 
 		const reposOnSnyk = snykProjects
-			.map((p) => p.attributes.tags)
+			.map((project) => project.attributes.tags)
 			.filter((tags) => tags.map(isMainBranchPredicate).includes(true))
 			.map((tags) => tags.find((x) => x.key === 'repo')?.value)
 			.filter((x) => x !== undefined);
 
 		const vulnsForRepo = dependabotVulnerabilities.filter(
-			(v) => v.full_name === r.full_name,
+			(v) => v.full_name === repo.full_name,
 		);
 
 		const uniqueReposOnSnyk = [...new Set(reposOnSnyk)];
-		const teamsForRepo = owners.filter((o) => o.full_repo_name === r.full_name);
-		const branchesForRepo = branches.filter((b) => b.repository_id === r.id);
-		const workflowsForRepo = productionWorkflowUsages.filter(
-			(repo) => repo.full_name === r.full_name,
-		);
+		const branchesForRepo = branches.filter((b) => b.repository_id === repo.id);
 
 		return evaluateOneRepo(
 			vulnsForRepo,
-			r,
+			repo,
 			branchesForRepo,
-			teamsForRepo,
-			repoLanguages,
 			snykIssues,
 			snykProjects,
 			uniqueReposOnSnyk,
-			workflowsForRepo,
 		);
 	});
 	return Promise.all(evaluatedRepos);
@@ -634,13 +624,14 @@ export function augmentRepositories(
 				(repoLanguage) => repoLanguage.full_name === repository.full_name,
 			)?.languages ?? [];
 
-		const githubTeamSlugsForRepo: string[] = owners
+		// view_repo_ownership is filtered to role_name='admin' - see fn_repo_ownership()
+		const adminTeamSlugsForRepo: string[] = owners
 			.filter((owner) => repository.full_name === owner.full_repo_name)
 			.map((owner) => owner.github_team_slug);
 
 		const augmentdRepo: AugmentedRepository = {
 			...repository,
-			github_team_slugs: githubTeamSlugsForRepo,
+			gh_admin_team_slugs: adminTeamSlugsForRepo,
 			languages: languagesForRepo,
 			workflow_usages: workflowsForRepo,
 		};

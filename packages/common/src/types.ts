@@ -98,7 +98,7 @@ export interface Repository extends RepositoryFields {
 }
 
 export interface AugmentedRepository extends Repository {
-	github_team_slugs: string[];
+	gh_admin_team_slugs: string[];
 	languages: string[];
 	workflow_usages: string[];
 }

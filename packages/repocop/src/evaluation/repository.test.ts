@@ -4,7 +4,11 @@ import type {
 	guardian_github_actions_usage,
 	view_repo_ownership,
 } from '@prisma/client';
-import type { RepocopVulnerability, Repository } from 'common/src/types';
+import type {
+	AugmentedRepository,
+	RepocopVulnerability,
+	Repository,
+} from 'common/src/types';
 import { example } from '../test-data/example-dependabot-alerts';
 import type {
 	AwsCloudFormationStack,
@@ -25,26 +29,20 @@ import {
 } from './repository';
 
 function evaluateRepoTestHelper(
-	repo: Repository,
+	augmentedRepo: AugmentedRepository,
 	branches: github_repository_branches[] = [],
-	owners: view_repo_ownership[] = [],
-	languages: github_languages[] = [],
 	dependabotAlerts: RepocopVulnerability[] = [],
 	latestSnykIssues: SnykIssue[] = [],
 	snykProjects: SnykProject[] = [],
 	reposOnSnyk: string[] = [],
-	workflowsForRepo: guardian_github_actions_usage[] = [],
 ) {
 	return evaluateOneRepo(
 		dependabotAlerts,
-		repo,
+		augmentedRepo,
 		branches,
-		owners,
-		languages,
 		latestSnykIssues,
 		snykProjects,
 		reposOnSnyk,
-		workflowsForRepo,
 	).repocopRules;
 }
 
@@ -61,23 +59,12 @@ const nullBranch: github_repository_branches = {
 	protected: null,
 };
 
-const nullWorkflows: guardian_github_actions_usage = {
-	evaluated_on: new Date('2024-01-01'),
-	full_name: '',
-	workflow_path: '',
-	workflow_uses: [],
-};
+const nullWorkflows: string[] = [];
 
-const sbtWorkflows: guardian_github_actions_usage = {
-	...nullWorkflows,
-	full_name: 'guardian/some-repo',
-	workflow_path: '.github/workflows/sbt-dependency-graph.yaml',
-	workflow_uses: [
-		'actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332',
-		'scalacenter/sbt-dependency-submission@7ebd561e5280336d3d5b445a59013810ff79325e',
-	],
-};
-
+const sbtWorkflows: string[] = [
+	'actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332',
+	'scalacenter/sbt-dependency-submission@7ebd561e5280336d3d5b445a59013810ff79325e',
+];
 export const nullRepo: Repository = {
 	full_name: '',
 	name: '',
@@ -90,14 +77,22 @@ export const nullRepo: Repository = {
 	default_branch: null,
 };
 
-const thePerfectRepo: Repository = {
+export const nullAugmentedRepo: AugmentedRepository = {
 	...nullRepo,
+	gh_admin_team_slugs: [],
+	languages: [],
+	workflow_usages: [],
+};
+
+const thePerfectAugmentedRepo: AugmentedRepository = {
+	...nullAugmentedRepo,
 	full_name: 'repo1',
 	name: 'repo1',
 	archived: false,
 	id: BigInt(1),
 	topics: ['production'],
 	default_branch: 'main',
+	gh_admin_team_slugs: ['some_team'],
 };
 
 const nullOwner: view_repo_ownership = {
@@ -121,7 +116,7 @@ const exampleSnykProject: SnykProject = {
 		tags: [
 			{
 				key: 'repo',
-				value: thePerfectRepo.full_name,
+				value: thePerfectAugmentedRepo.full_name,
 			},
 		],
 		origin: '',
@@ -131,8 +126,8 @@ const exampleSnykProject: SnykProject = {
 
 describe('REPOSITORY_01 - default_branch_name should be false when the default branch is not main', () => {
 	test('branch is not main', () => {
-		const badRepo = { ...thePerfectRepo, default_branch: 'notMain' };
-		const repos: Repository[] = [thePerfectRepo, badRepo];
+		const badRepo = { ...thePerfectAugmentedRepo, default_branch: 'notMain' };
+		const repos: AugmentedRepository[] = [thePerfectAugmentedRepo, badRepo];
 		const evaluation = repos.map((repo) => evaluateRepoTestHelper(repo));
 
 		expect(evaluation.map((repo) => repo.default_branch_name)).toEqual([
@@ -161,7 +156,7 @@ describe('REPOSITORY_02 - Repositories should have branch protection', () => {
 			name: 'side-branch',
 		};
 
-		const actual = evaluateRepoTestHelper(thePerfectRepo, [
+		const actual = evaluateRepoTestHelper(thePerfectAugmentedRepo, [
 			protectedMainBranch,
 			unprotectedSideBranch,
 		]);
@@ -169,189 +164,151 @@ describe('REPOSITORY_02 - Repositories should have branch protection', () => {
 		expect(actual.branch_protection).toEqual(true);
 	});
 	test('We should get a negative result when the default branch of a production repo is not protected', () => {
-		const actual = evaluateRepoTestHelper(thePerfectRepo, [
+		const actual = evaluateRepoTestHelper(thePerfectAugmentedRepo, [
 			unprotectedMainBranch,
 		]);
 		expect(actual.branch_protection).toEqual(false);
 	});
 	test('Repos with no branches do not need protecting, and should be considered protected', () => {
-		const repo: Repository = {
-			...thePerfectRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...thePerfectAugmentedRepo,
 			default_branch: null,
 		};
 
-		const actual = evaluateRepoTestHelper(repo);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.branch_protection).toEqual(true);
 	});
 	test('Repos with exempted topics should be considered adequately protected, even if they have an unprotected main branch', () => {
-		const repo: Repository = {
-			...thePerfectRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...thePerfectAugmentedRepo,
 			topics: ['hackday'],
 		};
 
-		const actual = evaluateRepoTestHelper(repo, [unprotectedMainBranch]);
+		const actual = evaluateRepoTestHelper(augmentedRepo, [
+			unprotectedMainBranch,
+		]);
 		expect(actual.branch_protection).toEqual(true);
 	});
 });
 
 describe('REPOSITORY_04 - Repository admin access', () => {
 	test('Should return false when there is no admin team', () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			full_name: 'guardian/service-catalogue',
 		};
 
-		const teams: view_repo_ownership[] = [
-			{
-				...nullOwner,
-				role_name: 'read-only',
-				full_repo_name: 'guardian/service-catalogue',
-				github_team_id: 1n,
-			},
-		];
-
-		const actual = evaluateRepoTestHelper(repo, [], teams);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.admin_access).toEqual(false);
 	});
 
 	test('Should return true when there is an admin team', () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...thePerfectAugmentedRepo,
 			full_name: 'guardian/service-catalogue',
 		};
 
-		const teams: view_repo_ownership[] = [
-			{
-				...nullOwner,
-				role_name: 'read-only',
-				full_repo_name: 'guardian/service-catalogue',
-				github_team_id: 1n,
-			},
-			{
-				...nullOwner,
-				role_name: 'admin',
-				full_repo_name: 'guardian/service-catalogue',
-				github_team_id: 2n,
-			},
-		];
-
-		const actual = evaluateRepoTestHelper(repo, [], teams);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.admin_access).toEqual(true);
 	});
 
 	test(`Should validate repositories with a 'hackday' topic`, () => {
 		//We are not interested in making sure hackday projects are kept up to date
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			full_name: 'guardian/service-catalogue',
 			id: 1234n,
 			topics: ['hackday'],
 		};
 
-		const actual = evaluateRepoTestHelper(repo);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.admin_access).toEqual(true);
 	});
 
 	test(`Should evaluate repositories with a 'production' topic`, () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			full_name: 'guardian/service-catalogue',
 			topics: ['production'],
+			gh_admin_team_slugs: ['some_team'],
 		};
 
-		const teams: view_repo_ownership[] = [
-			{
-				...nullOwner,
-				role_name: 'read-only',
-				full_repo_name: 'guardian/service-catalogue',
-				github_team_id: 1n,
-			},
-			{
-				...nullOwner,
-				role_name: 'admin',
-				full_repo_name: 'guardian/service-catalogue',
-				github_team_id: 2n,
-			},
-		];
-		const actual = evaluateRepoTestHelper(repo, [], teams);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.admin_access).toEqual(true);
 	});
 
 	test(`Should return false if all topics are unrecognised`, () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			full_name: 'guardian/service-catalogue',
-			id: 1234n,
 			topics: ['avocado'],
 		};
 
-		const actual = evaluateRepoTestHelper(repo);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.admin_access).toEqual(false);
 	});
 });
 
 describe('REPOSITORY_06 - Repository topics', () => {
 	test('Should return true when there is a single recognised topic', () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			topics: ['production'],
 		};
 
-		const actual = evaluateRepoTestHelper(repo);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.topics).toEqual(true);
 	});
 
 	test(`Should validate repos with an interactive topic`, () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			full_name: 'guardian/service-catalogue',
-			id: 1234n,
 			topics: ['interactive'],
 		};
 
-		const actual = evaluateRepoTestHelper(repo);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.topics).toEqual(true);
 	});
 
 	test('Should return false when there are multiple recognised topics', () => {
 		// Having more than one recognised topic creates confusion about how the repo
 		// is being used, and could also confuse repocop.
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			topics: ['production', 'hackday'],
 		};
 
-		const actual = evaluateRepoTestHelper(repo);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.topics).toEqual(false);
 	});
 
 	test('Should return true when there is are multiple topics, not all are recognised', () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			topics: ['production', 'android'],
 		};
 
-		const actual = evaluateRepoTestHelper(repo);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.topics).toEqual(true);
 	});
 
 	test('Should return false when there are no topics', () => {
-		const repo: Repository = {
-			...nullRepo,
-			topics: [],
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 		};
 
-		const actual = evaluateRepoTestHelper(repo);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.topics).toEqual(false);
 	});
 
 	test('Should return false when there are no recognised topics', () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			topics: ['android', 'mobile'],
 		};
 
-		const actual = evaluateRepoTestHelper(repo);
+		const actual = evaluateRepoTestHelper(augmentedRepo);
 		expect(actual.topics).toEqual(false);
 	});
 });
@@ -359,13 +316,13 @@ describe('REPOSITORY_06 - Repository topics', () => {
 // No rule for this evaluation yet
 describe('NO RULE - Repository maintenance', () => {
 	test('should have happened at some point in the last two years', () => {
-		const recentRepo: Repository = {
-			...nullRepo,
+		const recentRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			created_at: new Date(),
 		};
 
-		const oldRepo: Repository = {
-			...nullRepo,
+		const oldRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			created_at: new Date('2019-01-01'),
 		};
 
@@ -375,8 +332,8 @@ describe('NO RULE - Repository maintenance', () => {
 		expect(oldEval.archiving).toEqual(false);
 	});
 	test('should be based only on the most recent date provided', () => {
-		const recentlyUpdatedRepo: Repository = {
-			...nullRepo,
+		const recentlyUpdatedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			updated_at: new Date(),
 			//these two dates are more than two years in the past, but should be
 			//ignored because the updated_at date is more recent
@@ -388,8 +345,8 @@ describe('NO RULE - Repository maintenance', () => {
 		expect(actual.archiving).toEqual(true);
 	});
 	test('is not a concern if no dates are found', () => {
-		const recentlyUpdatedRepo: Repository = {
-			...nullRepo,
+		const recentlyUpdatedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 		};
 
 		const actual = evaluateRepoTestHelper(recentlyUpdatedRepo);
@@ -403,8 +360,8 @@ describe('REPOSITORY_08 - Repositories with related stacks on AWS', () => {
 		const tags = {
 			'gu:repo': full_name,
 		};
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			full_name,
 			name: 'repo1',
 			archived: false,
@@ -414,12 +371,12 @@ describe('REPOSITORY_08 - Repositories with related stacks on AWS', () => {
 			creation_time: new Date(),
 			tags,
 		};
-		const result = findStacks(repo, [stack]).stacks.length;
+		const result = findStacks(augmentedRepo, [stack]).stacks.length;
 		expect(result).toEqual(1);
 	});
 	test('should be findable if the repo name is part of the stack name', () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			full_name: 'guardian/repo1',
 			name: 'repo1',
 			archived: false,
@@ -430,15 +387,15 @@ describe('REPOSITORY_08 - Repositories with related stacks on AWS', () => {
 			tags: {},
 			creation_time: new Date(),
 		};
-		const result = findStacks(repo, [stack]).stacks.length;
+		const result = findStacks(augmentedRepo, [stack]).stacks.length;
 		expect(result).toEqual(1);
 	});
 });
 
 describe('REPOSITORY_08 - Repositories without any related stacks on AWS', () => {
 	test('should not be findable', () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			full_name: 'guardian/someRepo',
 			name: 'someRepo',
 			archived: false,
@@ -465,164 +422,96 @@ describe('REPOSITORY_08 - Repositories without any related stacks on AWS', () =>
 			},
 			creation_time: new Date(),
 		};
-		const result = findStacks(repo, [stack1, stack2]).stacks.length;
+		const result = findStacks(augmentedRepo, [stack1, stack2]).stacks.length;
 		expect(result).toEqual(0);
 	});
 });
 
 describe('REPOSITORY_09 - Dependency tracking', () => {
-	const emptyLanguages: github_languages = {
-		cq_sync_time: null,
-		cq_source_name: null,
-		cq_id: '',
-		cq_parent_id: null,
-		full_name: null,
-		name: null,
-		languages: [],
-	};
+	// const emptyLanguages: github_languages = {
+	// 	cq_sync_time: null,
+	// 	cq_source_name: null,
+	// 	cq_id: '',
+	// 	cq_parent_id: null,
+	// 	full_name: null,
+	// 	name: null,
+	// 	languages: [],
+	// };
 
-	const snykSupportedLanguages: github_languages = {
-		...emptyLanguages,
+	const repoWithSnykSupportedLanguages: AugmentedRepository = {
+		...nullAugmentedRepo,
 		full_name: 'guardian/some-repo',
 		name: 'some-repo',
 		languages: ['JavaScript', 'Objective-C'],
 	};
 
-	const dependabotAndDepGraphSupportedLanguages: github_languages = {
-		...emptyLanguages,
+	const repoWithDependabotAndDepGraphSupportedLanguages: AugmentedRepository = {
+		...nullAugmentedRepo,
 		full_name: 'guardian/some-repo',
 		name: 'some-repo',
 		languages: ['JavaScript', 'Scala'],
 	};
 
-	const fullySupportedLanguages: github_languages = {
-		...emptyLanguages,
+	const repoWithFullySupportedLanguages: AugmentedRepository = {
+		...nullAugmentedRepo,
 		full_name: 'guardian/some-repo',
 		name: 'some-repo',
 		languages: ['JavaScript'],
 	};
 
-	const unsupportedLanguages: github_languages = {
-		...emptyLanguages,
+	const repoWithUnsupportedLanguages: AugmentedRepository = {
+		...nullAugmentedRepo,
 		full_name: 'guardian/some-repo',
 		name: 'some-repo',
 		languages: ['Julia'],
 	};
 
 	test('is valid if all languages are supported, and the repo is on snyk', () => {
-		const repo: Repository = {
-			...nullRepo,
-			topics: ['production'],
-			full_name: 'guardian/some-repo',
-			default_branch: 'main',
-		};
-
-		const actual = hasDependencyTracking(
-			repo,
-			[snykSupportedLanguages],
-			['guardian/some-repo'],
-			[],
-		);
+		const actual = hasDependencyTracking(repoWithSnykSupportedLanguages, [
+			'guardian/some-repo',
+		]);
 		expect(actual).toEqual(true);
 	});
 	test('is valid if all languages are supported by dependabot, even if the repo is not on snyk', () => {
-		const repo: Repository = {
-			...nullRepo,
-			topics: ['production'],
-			full_name: 'guardian/some-repo',
-		};
-		const actual = hasDependencyTracking(
-			repo,
-			[fullySupportedLanguages],
-			[],
-			[],
-		);
+		const actual = hasDependencyTracking(repoWithFullySupportedLanguages, []);
 		expect(actual).toEqual(true);
 	});
 	test('is not valid if a project is not on snyk, and uses a language dependabot/dependency graph integrator does not support', () => {
-		const repo: Repository = {
-			...nullRepo,
-			topics: ['production'],
-			full_name: 'guardian/some-repo',
-		};
-		const actual = hasDependencyTracking(
-			repo,
-			[snykSupportedLanguages],
-			[],
-			[],
-		);
+		const actual = hasDependencyTracking(repoWithSnykSupportedLanguages, []);
 		expect(actual).toEqual(false);
 	});
 	test('is not valid if a project is not on snyk, uses a language supported by dependency graph integrator but there is no submission workflow for that language', () => {
-		const repo: Repository = {
-			...nullRepo,
-			topics: ['production'],
-			full_name: 'guardian/some-repo',
-		};
-		const actual = hasDependencyTracking(
-			repo,
-			[snykSupportedLanguages],
-			[],
-			[nullWorkflows],
-		);
+		const actual = hasDependencyTracking(repoWithSnykSupportedLanguages, []);
 		expect(actual).toEqual(false);
 	});
 	test('is valid if a project is not on snyk, uses a language supported by dependency graph integrator and has associated submission workflow for that language', () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...repoWithDependabotAndDepGraphSupportedLanguages,
 			topics: ['production'],
-			full_name: 'guardian/some-repo',
+			workflow_usages: sbtWorkflows,
 		};
-		const actual = hasDependencyTracking(
-			repo,
-			[dependabotAndDepGraphSupportedLanguages],
-			[],
-			[sbtWorkflows],
-		);
+		const actual = hasDependencyTracking(augmentedRepo, []);
 		expect(actual).toEqual(true);
 	});
 	test('is not valid if a project is on snyk, and uses a language not supported by snyk', () => {
-		const repo: Repository = {
-			...nullRepo,
-			topics: ['production'],
-			full_name: 'guardian/some-repo',
-		};
-		const actual = hasDependencyTracking(repo, [unsupportedLanguages], [], []);
+		const actual = hasDependencyTracking(repoWithUnsupportedLanguages, []);
 		expect(actual).toEqual(false);
 	});
 	test('is valid if a repository has been archived', () => {
-		const repo: Repository = {
-			...nullRepo,
-			archived: true,
-			full_name: 'guardian/some-repo',
-		};
-		const actual = hasDependencyTracking(repo, [unsupportedLanguages], [], []);
+		const actual = hasDependencyTracking(repoWithUnsupportedLanguages, []);
 		expect(actual).toEqual(true);
 	});
 	test('is valid if a repository has a non-production tag', () => {
-		const repo: Repository = {
-			...nullRepo,
-			topics: [],
-			full_name: 'guardian/some-repo',
-		};
-		const actual = hasDependencyTracking(repo, [unsupportedLanguages], [], []);
+		const actual = hasDependencyTracking(repoWithUnsupportedLanguages, []);
 		expect(actual).toEqual(true);
 	});
 	test('is valid if a repository has no languages', () => {
-		const repo: Repository = {
-			...nullRepo,
+		const augmentedRepo: AugmentedRepository = {
+			...nullAugmentedRepo,
 			topics: ['production'],
 			full_name: 'guardian/some-repo',
 		};
-
-		const noLanguages: github_languages = {
-			...emptyLanguages,
-			full_name: 'guardian/some-repo',
-			name: 'some-repo',
-			languages: [],
-		};
-
-		const actual = hasDependencyTracking(repo, [noLanguages], [], []);
+		const actual = hasDependencyTracking(augmentedRepo, []);
 		expect(actual).toEqual(true);
 	});
 });
@@ -658,20 +547,24 @@ const newHighDependabotVuln: RepocopVulnerability = {
 
 describe('NO RULE - Dependabot alerts', () => {
 	test('should be flagged if there are critical alerts older than two days', () => {
-		expect(hasOldAlerts([oldCriticalDependabotVuln], thePerfectRepo)).toBe(
+		expect(
+			hasOldAlerts([oldCriticalDependabotVuln], thePerfectAugmentedRepo),
+		).toBe(true);
+	});
+	test('should not be flagged if a critical alert was raised today', () => {
+		expect(
+			hasOldAlerts([newCriticalDependabotVuln], thePerfectAugmentedRepo),
+		).toBe(false);
+	});
+	test('should be flagged if there are high alerts older than 30 days', () => {
+		expect(hasOldAlerts([oldHighDependabotVuln], thePerfectAugmentedRepo)).toBe(
 			true,
 		);
 	});
-	test('should not be flagged if a critical alert was raised today', () => {
-		expect(hasOldAlerts([newCriticalDependabotVuln], thePerfectRepo)).toBe(
+	test('should not be flagged if a high alert was raised today', () => {
+		expect(hasOldAlerts([newHighDependabotVuln], thePerfectAugmentedRepo)).toBe(
 			false,
 		);
-	});
-	test('should be flagged if there are high alerts older than 30 days', () => {
-		expect(hasOldAlerts([oldHighDependabotVuln], thePerfectRepo)).toBe(true);
-	});
-	test('should not be flagged if a high alert was raised today', () => {
-		expect(hasOldAlerts([newHighDependabotVuln], thePerfectRepo)).toBe(false);
 	});
 	test('should not be flagged if a high alert was raised 29 days ago', () => {
 		const thirteenDaysAgo = new Date();
@@ -682,7 +575,9 @@ describe('NO RULE - Dependabot alerts', () => {
 			alert_issue_date: thirteenDaysAgo,
 		};
 
-		expect(hasOldAlerts([thirteenDayOldHigh], thePerfectRepo)).toBe(false);
+		expect(hasOldAlerts([thirteenDayOldHigh], thePerfectAugmentedRepo)).toBe(
+			false,
+		);
 	});
 });
 
@@ -786,12 +681,16 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 	};
 
 	test('Should not be detected if no projects or issues are passed', () => {
-		const result = collectAndFormatUrgentSnykAlerts(thePerfectRepo, [], []);
+		const result = collectAndFormatUrgentSnykAlerts(
+			thePerfectAugmentedRepo,
+			[],
+			[],
+		);
 		expect(result.length).toEqual(0);
 	});
 	test('Should be detected if a repo, project, and issue match', () => {
 		const result = collectAndFormatUrgentSnykAlerts(
-			thePerfectRepo,
+			thePerfectAugmentedRepo,
 			[snykIssue],
 			[exampleSnykProject],
 		);
@@ -799,7 +698,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 	});
 	test('Should not be detected if a repo, project, and old issue match, but the repo is not in production', () => {
 		const nonProdRepo = {
-			...thePerfectRepo,
+			...thePerfectAugmentedRepo,
 			topics: [],
 		};
 		const result = collectAndFormatUrgentSnykAlerts(
@@ -815,7 +714,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 			attributes: { ...exampleSnykProject.attributes, tags: [] },
 		};
 		const result = collectAndFormatUrgentSnykAlerts(
-			thePerfectRepo,
+			thePerfectAugmentedRepo,
 			[snykIssue],
 			[untaggedProject],
 		);
@@ -834,7 +733,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 			},
 		};
 		const result = collectAndFormatUrgentSnykAlerts(
-			thePerfectRepo,
+			thePerfectAugmentedRepo,
 			[lowSeverity, mediumSeverity],
 			[exampleSnykProject],
 		);
@@ -842,7 +741,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 	});
 	test('Should not be considered patchable if there is no possible upgrade path', () => {
 		const result = collectAndFormatUrgentSnykAlerts(
-			thePerfectRepo,
+			thePerfectAugmentedRepo,
 			[
 				{
 					...snykIssue,
@@ -891,7 +790,7 @@ describe('NO RULE - Snyk vulnerabilities', () => {
 			},
 		};
 		const result = collectAndFormatUrgentSnykAlerts(
-			thePerfectRepo,
+			thePerfectAugmentedRepo,
 			[pinnableIssue, patchableIssue, upgradableIssue],
 			[exampleSnykProject],
 		);

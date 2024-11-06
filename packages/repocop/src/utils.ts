@@ -1,8 +1,11 @@
-import type { RepocopVulnerability, Repository } from 'common/src/types';
+import type {
+	AugmentedRepository,
+	RepocopVulnerability,
+} from 'common/src/types';
 import type { SnykIssue } from './types';
 
-export function isProduction(repo: Repository) {
-	return repo.topics.includes('production') && !repo.archived;
+export function isProduction(augmentedRepo: AugmentedRepository) {
+	return augmentedRepo.topics.includes('production') && !augmentedRepo.archived;
 }
 
 const criticalFirstPredicate = (x: RepocopVulnerability) =>

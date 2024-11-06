@@ -89,10 +89,20 @@ export async function main() {
 	const teams = await getTeams(prisma);
 	const repoOwners = await getRepoOwnership(prisma);
 
-	const productionRepos = unarchivedRepos.filter((repo) => isProduction(repo));
+	const augmentedRepositories = augmentRepositories(
+		unarchivedRepos,
+		repoOwners,
+		repoLanguages,
+		productionWorkflowUsages,
+	);
+
+	const augmentedProdRepos = augmentedRepositories.filter((repo) =>
+		isProduction(repo),
+	);
+
 	const productionDependabotVulnerabilities: RepocopVulnerability[] =
 		await getDependabotVulnerabilities(
-			productionRepos,
+			augmentedProdRepos,
 			config.gitHubOrg,
 			octokit,
 		);
@@ -100,24 +110,13 @@ export async function main() {
 	console.log(productionDependabotVulnerabilities);
 
 	const productionWorkflowUsages: guardian_github_actions_usage[] =
-		await getProductionWorkflowUsages(prisma, productionRepos);
-
+		await getProductionWorkflowUsages(prisma, augmentedProdRepos);
 	const evaluationResults: EvaluationResult[] = await evaluateRepositories(
-		unarchivedRepos,
+		augmentedRepositories,
 		branches,
-		repoOwners,
-		repoLanguages,
 		openSnykIssues,
 		snykProjects,
 		productionDependabotVulnerabilities,
-		productionWorkflowUsages,
-	);
-
-	const augmentedRepositories = augmentRepositories(
-		productionRepos,
-		repoOwners,
-		repoLanguages,
-		productionWorkflowUsages,
 	);
 
 	const repocopRules = evaluationResults.map((r) => r.repocopRules);
@@ -175,7 +174,7 @@ export async function main() {
 
 	await sendReposToDependencyGraphIntegrator(
 		config,
-		augmentedRepositories,
+		augmentedProdRepos,
 		dependencyGraphIntegratorRepoCount,
 	);
 

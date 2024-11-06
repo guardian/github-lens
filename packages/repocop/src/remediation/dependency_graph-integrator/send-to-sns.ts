@@ -38,7 +38,7 @@ export function createSnsEventsForDependencyGraphIntegration(
 		reposWithoutWorkflows.map((repo) => ({
 			name: removeRepoOwner(repo.full_name),
 			language: repo.dependency_graph_language,
-			admins: repo.github_team_slugs,
+			admins: repo.gh_admin_team_slugs,
 		}));
 
 	console.log(`Found ${eventsForAllLanguages.length} events to send to SNS`);
@@ -66,7 +66,7 @@ async function sendOneRepoToDepGraphIntegrator(
 	}
 }
 
-export function getReposWithoutWorkflows(
+export function getReposWithoutDepSubmissionWorkflows(
 	augmentedRepositories: AugmentedRepository[],
 ): RepositoryWithDepGraphLanguage[] {
 	const depGraphLanguages: DepGraphLanguage[] = ['Scala', 'Kotlin'];
@@ -106,7 +106,7 @@ export async function sendReposToDependencyGraphIntegrator(
 	repoCount: number,
 ): Promise<void> {
 	const reposRequiringDepGraphIntegration: RepositoryWithDepGraphLanguage[] =
-		getReposWithoutWorkflows(augmentedRepositories);
+		getReposWithoutDepSubmissionWorkflows(augmentedRepositories);
 
 	if (reposRequiringDepGraphIntegration.length !== 0) {
 		console.log(

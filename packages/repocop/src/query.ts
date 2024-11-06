@@ -6,6 +6,7 @@ import type {
 	view_repo_ownership,
 } from '@prisma/client';
 import type {
+	AugmentedRepository,
 	NonEmptyArray,
 	RepocopVulnerability,
 	Repository,
@@ -164,13 +165,13 @@ async function getAlertsForRepo(
 }
 
 export async function getDependabotVulnerabilities(
-	repos: Repository[],
+	augmentedRepos: AugmentedRepository[],
 	orgName: string,
 	octokit: Octokit,
 ) {
 	const dependabotVulnerabilities: RepocopVulnerability[] = (
 		await Promise.all(
-			repos.map(async (repo) => {
+			augmentedRepos.map(async (repo) => {
 				const alerts = await getAlertsForRepo(octokit, orgName, repo.name);
 				if (alerts) {
 					return alerts.map((a) =>
@@ -183,7 +184,7 @@ export async function getDependabotVulnerabilities(
 	).flat();
 
 	console.log(
-		`Found ${dependabotVulnerabilities.length} dependabot vulnerabilities across ${repos.length} repos`,
+		`Found ${dependabotVulnerabilities.length} dependabot vulnerabilities across ${augmentedRepos.length} repos`,
 	);
 
 	return dependabotVulnerabilities;
@@ -191,11 +192,11 @@ export async function getDependabotVulnerabilities(
 
 export async function getProductionWorkflowUsages(
 	client: PrismaClient,
-	productionRepos: Repository[],
+	augmentedProdRepos: AugmentedRepository[],
 ): Promise<NonEmptyArray<guardian_github_actions_usage>> {
 	const actions_usage = await client.guardian_github_actions_usage.findMany({
 		where: {
-			full_name: { in: productionRepos.map((repo) => repo.full_name) },
+			full_name: { in: augmentedProdRepos.map((repo) => repo.full_name) },
 		},
 	});
 	return toNonEmptyArray(actions_usage);

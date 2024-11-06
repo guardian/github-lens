@@ -1,5 +1,5 @@
 import type { Repository } from 'common/src/types';
-import { nullRepo } from '../../evaluation/repository.test';
+import { nullAugmentedRepo } from '../../evaluation/repository.test';
 import type { AwsCloudFormationStack } from '../../types';
 import {
 	createMessage,
@@ -39,26 +39,26 @@ describe('getReposWithoutProductionTopic', () => {
 	it('should return only repositories without production or interactive topics and without "interactive" in the repo name', () => {
 		const unarchivedRepos: Repository[] = [
 			{
-				...nullRepo,
+				...nullAugmentedRepo,
 				full_name: 'guardian/repo-bad-1',
 				topics: ['production'],
 			},
 			{
-				...nullRepo,
+				...nullAugmentedRepo,
 				full_name: 'guardian/repo-good-1',
 				topics: ['prototype'],
 			},
 			{
-				...nullRepo,
+				...nullAugmentedRepo,
 				full_name: 'guardian/repo-bad-2',
 				topics: ['interactive'],
 			},
 			{
-				...nullRepo,
+				...nullAugmentedRepo,
 				full_name: 'guardian/repo-bad-interactive-3',
 			},
 			{
-				...nullRepo,
+				...nullAugmentedRepo,
 				full_name: 'guardian/repo-good-2',
 			},
 		];
