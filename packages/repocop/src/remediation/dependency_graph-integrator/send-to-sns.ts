@@ -26,8 +26,8 @@ export function doesRepoHaveDepSubmissionWorkflowForLanguage(
 		Kotlin: 'gradle/actions/dependency-submission',
 	};
 
-	return augmentedRepository.workflow_usages.includes(
-		dependencySubmissionWorkflows[`${targetLanguage}`],
+	return augmentedRepository.workflow_usages.some((action) =>
+		action.includes(dependencySubmissionWorkflows[`${targetLanguage}`]),
 	);
 }
 
