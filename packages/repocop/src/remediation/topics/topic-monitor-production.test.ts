@@ -1,5 +1,4 @@
 import type { Repository } from 'common/src/types';
-import { nullAugmentedRepo } from '../../evaluation/repository.test';
 import type { AwsCloudFormationStack } from '../../types';
 import {
 	createMessage,
@@ -16,12 +15,23 @@ const myRepoProdStack: AwsCloudFormationStack = {
 	},
 };
 
+const nullRepo: Repository = {
+	full_name: '',
+	name: '',
+	archived: false,
+	id: BigInt(0),
+	created_at: new Date(),
+	updated_at: null,
+	pushed_at: null,
+	topics: [],
+	default_branch: null,
+};
+
 const myRepo: Repository = {
+	...nullRepo,
 	full_name: 'guardian/my-repo',
 	name: 'my-repo',
-	topics: [],
 	id: 1n,
-	archived: false,
 	default_branch: 'main',
 	created_at: new Date('2021-01-01'),
 	updated_at: new Date('2021-01-01'),
@@ -39,26 +49,26 @@ describe('getReposWithoutProductionTopic', () => {
 	it('should return only repositories without production or interactive topics and without "interactive" in the repo name', () => {
 		const unarchivedRepos: Repository[] = [
 			{
-				...nullAugmentedRepo,
+				...nullRepo,
 				full_name: 'guardian/repo-bad-1',
 				topics: ['production'],
 			},
 			{
-				...nullAugmentedRepo,
+				...nullRepo,
 				full_name: 'guardian/repo-good-1',
 				topics: ['prototype'],
 			},
 			{
-				...nullAugmentedRepo,
+				...nullRepo,
 				full_name: 'guardian/repo-bad-2',
 				topics: ['interactive'],
 			},
 			{
-				...nullAugmentedRepo,
+				...nullRepo,
 				full_name: 'guardian/repo-bad-interactive-3',
 			},
 			{
-				...nullAugmentedRepo,
+				...nullRepo,
 				full_name: 'guardian/repo-good-2',
 			},
 		];
