@@ -19,7 +19,6 @@ import {
 import { sendToCloudwatch } from './metrics';
 import {
 	getDependabotVulnerabilities,
-	getProductionWorkflowUsages,
 	getRepoOwnership,
 	getRepositories,
 	getRepositoryBranches,
@@ -28,6 +27,7 @@ import {
 	getSnykProjects,
 	getStacks,
 	getTeams,
+	getWorkflowUsages,
 } from './query';
 import { protectBranches } from './remediation/branch-protector/branch-protection';
 import { sendReposToDependencyGraphIntegrator } from './remediation/dependency_graph-integrator/send-to-sns';
@@ -89,30 +89,31 @@ export async function main() {
 	const teams = await getTeams(prisma);
 	const repoOwners = await getRepoOwnership(prisma);
 
-	const augmentedRepositories = augmentRepositories(
+	const unarchivedRepoWorkflowUsages: guardian_github_actions_usage[] =
+		await getWorkflowUsages(prisma, unarchivedRepos);
+
+	const augmentedUnarchivedRepos = augmentRepositories(
 		unarchivedRepos,
 		repoOwners,
 		repoLanguages,
-		productionWorkflowUsages,
-	);
-
-	const augmentedProdRepos = augmentedRepositories.filter((repo) =>
-		isProduction(repo),
+		unarchivedRepoWorkflowUsages,
 	);
 
 	const productionDependabotVulnerabilities: RepocopVulnerability[] =
 		await getDependabotVulnerabilities(
-			augmentedProdRepos,
+			unarchivedRepos,
 			config.gitHubOrg,
 			octokit,
 		);
 
 	console.log(productionDependabotVulnerabilities);
 
-	const productionWorkflowUsages: guardian_github_actions_usage[] =
-		await getProductionWorkflowUsages(prisma, augmentedProdRepos);
+	const augmentedProdRepos = augmentedUnarchivedRepos.filter((repo) =>
+		isProduction(repo),
+	);
+
 	const evaluationResults: EvaluationResult[] = await evaluateRepositories(
-		augmentedRepositories,
+		augmentedUnarchivedRepos,
 		branches,
 		openSnykIssues,
 		snykProjects,

@@ -252,7 +252,7 @@ export function hasDependencyTracking(
  *   > Archived repositories should not have corresponding stacks on AWS.
  */
 export function findStacks(
-	repo: AugmentedRepository,
+	repo: Repository,
 	stacks: AwsCloudFormationStack[],
 ): RepoAndStack {
 	const stackMatches = stacks.filter((stack) => {
@@ -273,8 +273,8 @@ export function findStacks(
 }
 
 function findArchivedReposWithStacks(
-	archivedRepositories: AugmentedRepository[],
-	unarchivedRepositories: AugmentedRepository[],
+	archivedRepositories: Repository[],
+	unarchivedRepositories: Repository[],
 	stacks: AwsCloudFormationStack[],
 ) {
 	const archivedRepos = archivedRepositories;
@@ -370,8 +370,8 @@ export function collectAndFormatUrgentSnykAlerts(
 
 export function testExperimentalRepocopFeatures(
 	evaluationResults: EvaluationResult[],
-	unarchivedRepos: AugmentedRepository[],
-	archivedRepos: AugmentedRepository[],
+	unarchivedRepos: Repository[],
+	archivedRepos: Repository[],
 	nonPlaygroundStacks: AwsCloudFormationStack[],
 ) {
 	const evaluatedRepos = evaluationResults.map((r) => r.repocopRules);
@@ -614,7 +614,7 @@ export function augmentRepositories(
 	repoLanguages: github_languages[],
 	productionWorkflowUsages: guardian_github_actions_usage[],
 ): AugmentedRepository[] {
-	const augmentdRepos = repositories.map((repository) => {
+	const augmentedRepos = repositories.map((repository) => {
 		const workflowsForRepo = productionWorkflowUsages
 			.filter((workflows) => workflows.full_name === repository.full_name)
 			.flatMap((workflow) => workflow.workflow_uses);
@@ -637,5 +637,5 @@ export function augmentRepositories(
 		};
 		return augmentdRepo;
 	});
-	return augmentdRepos;
+	return augmentedRepos;
 }
