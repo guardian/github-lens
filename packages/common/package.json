@@ -12,14 +12,14 @@
 		"@guardian/anghammarad": "^1.8.3",
 		"@aws-sdk/credential-providers": "^3.726.1",
 		"@aws-sdk/rds-signer": "^3.726.1",
-		"@octokit/auth-app": "^6.1.2",
+		"@octokit/auth-app": "^7.1.4",
 		"octokit": "^3.2.1",
-		"octokit-plugin-create-pull-request": "^5.1.1",
+		"octokit-plugin-create-pull-request": "^6.0.0",
 		"@prisma/client": "^6.2.1"
 	},
 	"devDependencies": {
 		"prisma": "^6.2.1",
-		"@octokit/graphql": "^8.1.1",
+		"@octokit/graphql": "^8.1.2",
 		"@octokit/types": "^13.6.1",
 		"@types/aws-lambda": "^8.10.141"
 	},
