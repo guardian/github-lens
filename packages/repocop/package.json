@@ -14,7 +14,7 @@
 	"dependencies": {
 		"@aws-sdk/client-cloudwatch": "^3.726.1",
 		"@aws-sdk/client-sns": "^3.726.1",
-		"octokit-plugin-create-pull-request": "^5.1.1",
+		"octokit-plugin-create-pull-request": "^6.0.0",
 		"ts-markdown": "^1.2.0",
 		"yaml": "^2.7.0"
 	}
